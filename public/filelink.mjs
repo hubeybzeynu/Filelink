@@ -474,6 +474,44 @@ function handleControl(params) {
       }
       return { ok: true, name: state?.deviceName };
     }
+    case "cursorInfo": {
+      const ps =
+        "Add-Type -AssemblyName System.Windows.Forms; $b = [System.Windows.Forms.SystemInformation]::VirtualScreen; Write-Output \"$($b.Width),$($b.Height)\"";
+      const out = runSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, 5000);
+      const [w, h] = out.trim().split(",").map(Number);
+      return { width: w || 1920, height: h || 1080 };
+    }
+    case "cursorMove":
+    case "cursorClick":
+    case "cursorScroll": {
+      // Fire-and-forget, same reasoning as "alert" — these run instantly
+      // (no MessageBox to wait on) but a fresh powershell.exe process still
+      // takes ~100-300ms to start, which is the real floor on how "live"
+      // this can feel over exec-per-action. Not truly 1:1 mouse tracking —
+      // more like tap-to-move-and-click.
+      const x = Math.round(Number(params?.x ?? 0));
+      const y = Math.round(Number(params?.y ?? 0));
+      const mouseOpsType =
+        'public class FLMouse { [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, int data, uint extra); [System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); }';
+      let action = "";
+      if (command === "cursorMove") {
+        action = `[FLMouse]::SetCursorPos(${x}, ${y})`;
+      } else if (command === "cursorClick") {
+        const button = String(params?.button ?? "left");
+        const down = button === "right" ? "0x0008" : button === "middle" ? "0x0020" : "0x0002";
+        const up = button === "right" ? "0x0010" : button === "middle" ? "0x0040" : "0x0004";
+        action = `[FLMouse]::SetCursorPos(${x}, ${y}); [FLMouse]::mouse_event(${down},0,0,0,0); [FLMouse]::mouse_event(${up},0,0,0,0)`;
+      } else {
+        const amount = Math.round(Number(params?.amount ?? 0));
+        const horizontal = Boolean(params?.horizontal);
+        action = horizontal
+          ? `[FLMouse]::mouse_event(0x1000,0,0,${amount},0)`
+          : `[FLMouse]::mouse_event(0x0800,0,0,${amount},0)`;
+      }
+      const ps = `Add-Type -TypeDefinition '${mouseOpsType}'; ${action}`;
+      runSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, 3000);
+      return { ok: true };
+    }
     case "alert": {
       const title = String(params?.title ?? "Message").replace(/'/g, "''").slice(0, 120);
       const content = String(params?.content ?? "").replace(/'/g, "''").slice(0, 2000);

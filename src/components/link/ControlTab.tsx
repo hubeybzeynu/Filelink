@@ -12,6 +12,7 @@ import {
   Lock,
   LogOut,
   MessageSquareWarning,
+  MousePointer2,
   MonitorPlay,
   Moon,
   Power,
@@ -36,6 +37,7 @@ import { AuditTrail } from "@/components/link/AuditTrail";
 import { PowerModal, type PowerActionSpec } from "@/components/link/control/PowerModal";
 import { OpenFileLinkTab } from "@/components/link/OpenFileLinkTab";
 import { AlertTab } from "@/components/link/AlertTab";
+import { CursorTab } from "@/components/link/CursorTab";
 import { addAudit } from "@/lib/audit";
 import {
   Dialog,
@@ -66,7 +68,7 @@ const AGENT_ACTIONS = [
   { key: "removeAgent", label: "Stop Agent", icon: Trash2, danger: true },
 ] as const;
 
-const TABS = ["Power", "Agent", "Copy/Paste", "Open/Link", "Alert", "Display", "Audit"] as const;
+const TABS = ["Power", "Agent", "Copy/Paste", "Open/Link", "Alert", "Cursor", "Display", "Audit"] as const;
 type ControlTabKey = (typeof TABS)[number];
 
 const TAB_META: Record<ControlTabKey, { label: string; description: string; Icon: React.ElementType }> = {
@@ -75,6 +77,7 @@ const TAB_META: Record<ControlTabKey, { label: string; description: string; Icon
   "Copy/Paste": { label: "Copy / Paste", description: "Send clipboard to the target PC", Icon: ClipboardIcon },
   "Open/Link": { label: "Open File / Link", description: "Open a URL, run a path, send & open a file", Icon: LinkIcon },
   Alert: { label: "Alert", description: "Pop up a message or a yes/no question", Icon: MessageSquareWarning },
+  Cursor: { label: "Cursor", description: "Move the mouse and click on the target PC", Icon: MousePointer2 },
   Display: { label: "Display", description: "Screen capture & camera", Icon: MonitorPlay },
   Audit: { label: "Audit", description: "History of remote actions", Icon: FileClock },
 };
@@ -460,6 +463,7 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
           {tab === "Copy/Paste" && <ClipboardPanel session={session} target={target} />}
           {tab === "Open/Link" && <OpenFileLinkTab session={session} target={target} />}
           {tab === "Alert" && <AlertTab session={session} target={target} />}
+          {tab === "Cursor" && <CursorTab session={session} target={target} />}
           {tab === "Display" && <DisplayHub session={session} target={target} onPick={() => setPickerOpen(true)} />}
           {tab === "Audit" && <AuditTrail />}
 

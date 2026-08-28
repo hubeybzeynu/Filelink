@@ -1029,7 +1029,7 @@ export async function handleAction(action: string, body: Record<string, unknown>
       if (!target) throw new ApiError("Which device?");
       if (!target.online) throw new ApiError(`${target.name} is offline right now`);
       const command = String(body.command ?? "");
-      const allowed = ["shutdown", "restart", "sleep", "lock", "logout", "screenLock", "restartAgent", "stopAgent", "removeAgent", "flushDns", "getDns", "setDns", "resetDns", "cancelShutdown", "alert", "rename"];
+      const allowed = ["shutdown", "restart", "sleep", "lock", "logout", "screenLock", "restartAgent", "stopAgent", "removeAgent", "flushDns", "getDns", "setDns", "resetDns", "cancelShutdown", "alert", "rename", "cursorInfo", "cursorMove", "cursorClick", "cursorScroll"];
       if (!allowed.includes(command)) throw new ApiError("Unknown control command");
       const { data: call, error } = await db
         .from("device_rpc")
@@ -1046,6 +1046,11 @@ export async function handleAction(action: string, body: Record<string, unknown>
             ...(body.title ? { title: String(body.title).slice(0, 120) } : {}),
             ...(body.content ? { content: String(body.content).slice(0, 2000) } : {}),
             ...(body.name ? { name: String(body.name).slice(0, 160) } : {}),
+            ...(body.x !== undefined ? { x: Number(body.x) || 0 } : {}),
+            ...(body.y !== undefined ? { y: Number(body.y) || 0 } : {}),
+            ...(body.button ? { button: String(body.button).slice(0, 10) } : {}),
+            ...(body.amount !== undefined ? { amount: Number(body.amount) || 0 } : {}),
+            ...(body.horizontal !== undefined ? { horizontal: Boolean(body.horizontal) } : {}),
           } as never,
         })
         .select("id")
