@@ -522,6 +522,10 @@ export function updateDevice(session: Session, targetId: string, name: string) {
   );
 }
 
+export function deleteDevice(session: Session, targetId: string) {
+  return api<{ ok: boolean; devices: DeviceInfo[] }>("deleteDevice", { targetId }, session);
+}
+
 export function sendControl(session: Session, target: string, command: string, extra?: Record<string, unknown>) {
   return api<{ ok: boolean; result?: unknown }>("control", { target, command, ...(extra ?? {}) }, session);
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, CheckCircle2, Cpu, Download, HardDrive, Loader2, Monitor, Plus, RefreshCw, Server } from "lucide-react";
 import { BackgroundAgentDownload } from "@/components/link/BackgroundAgentDownload";
-import { humanSize, remoteSysInfo, getInstallStatus, type DeviceInfo, type InstallStatus, type Session } from "@/lib/linkClient";
+import { humanSize, remoteSysInfo, remoteExecStart, remoteExecStatus, getInstallStatus, type DeviceInfo, type InstallStatus, type Session } from "@/lib/linkClient";
 import { downloadAgentInstaller } from "@/lib/agentScript";
 
 type SysInfo = {
@@ -301,50 +301,106 @@ function AgentCompatibility({
 
   const [checkStarted, setCheckStarted] = useState(false);
   const [resolvedCount, setResolvedCount] = useState(0);
+  const [checkResults, setCheckResults] = useState<{ label: string; pass: boolean; note: string }[]>([]);
 
-  const checks = useMemo(() => {
+  const isReachable = !!selected?.online;
+
+  /** Runs a real PowerShell probe on the target PC and returns whether it
+   * printed OK. Used when the device is actually online — otherwise there's
+   * nothing to check yet and we fall back to a reasonable OS-based guess. */
+  async function probe(command: string): Promise<boolean> {
+    try {
+      const { callId } = await remoteExecStart(session, target, command);
+      let status = "pending";
+      let chunks: string[] = [];
+      const deadline = Date.now() + 8000;
+      while ((status === "pending" || status === "running") && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 300));
+        const st = await remoteExecStatus(session, callId);
+        status = st.status;
+        chunks = st.chunks;
+      }
+      return chunks.join("").includes("FL_OK");
+    } catch {
+      return false;
+    }
+  }
+
+  async function runCheck(index: number): Promise<{ label: string; pass: boolean; note: string }> {
     const os = (info.os ?? selected?.osInfo ?? "").toLowerCase();
     const isWin1011 = os.includes("windows 10") || os.includes("windows 11");
     const isSupportedWindows = isWin1011 || os.includes("server");
-    return [
-      {
+
+    if (index === 0) {
+      return {
         label: "Windows 10 / 11 compatible",
         pass: isSupportedWindows,
         note: isSupportedWindows ? badge : "Requires Windows 10, 11 or Server",
-      },
-      {
-        label: "Startup folder writable",
-        pass: true,
-        note: "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
-      },
-      {
-        label: "PowerShell available",
-        pass: /win|server/.test(os) || !os,
-        note: "PowerShell 5.1+ ships with Windows",
-      },
-      {
-        label: "Roaming AppData available",
-        pass: true,
-        note: "%APPDATA%\\FileLinkAgent",
-      },
-    ];
-  }, [info.os, selected?.osInfo, badge]);
+      };
+    }
+    if (index === 1) {
+      const label = "Startup folder writable";
+      const path = "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup";
+      if (!isReachable) return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
+      const ok = await probe(
+        `powershell -NoProfile -Command "try { $p = Join-Path $env:APPDATA 'Microsoft\\Windows\\Start Menu\\Programs\\Startup\\flcheck.tmp'; New-Item -Path $p -ItemType File -Force | Out-Null; Remove-Item $p; Write-Output FL_OK } catch { Write-Output FL_FAIL }"`,
+      );
+      return { label, pass: ok, note: ok ? path : "Could not write to the Startup folder" };
+    }
+    if (index === 2) {
+      const label = "PowerShell available";
+      if (!isReachable) {
+        const guess = /win|server/.test(os) || !os;
+        return { label, pass: guess, note: guess ? "PowerShell 5.1+ ships with Windows (estimated)" : "Unknown OS" };
+      }
+      const ok = await probe(`where powershell`);
+      return { label, pass: ok, note: ok ? "PowerShell 5.1+ ships with Windows" : "PowerShell not found on this PC" };
+    }
+    // index 3
+    {
+      const label = "Roaming AppData available";
+      const path = "%APPDATA%\\FileLinkAgent";
+      if (!isReachable) return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
+      const ok = await probe(
+        `powershell -NoProfile -Command "if (Test-Path $env:APPDATA) { Write-Output FL_OK } else { Write-Output FL_FAIL }"`,
+      );
+      return { label, pass: ok, note: ok ? path : "%APPDATA% is not reachable on this PC" };
+    }
+  }
 
-  // Runs the checks one at a time with a brief "analyzing" state each,
-  // instead of dumping all four pass/fail results on screen at once.
+  // Runs the checks one at a time — actually probing the live PC when it's
+  // online, instead of just guessing pass:true for three of the four.
   useEffect(() => {
-    if (!checkStarted || resolvedCount >= checks.length) return;
-    const t = window.setTimeout(() => setResolvedCount((n) => n + 1), 750);
-    return () => window.clearTimeout(t);
-  }, [checkStarted, resolvedCount, checks.length]);
+    if (!checkStarted || resolvedCount >= 4) return;
+    let cancelled = false;
+    (async () => {
+      const result = await runCheck(resolvedCount);
+      if (cancelled) return;
+      setCheckResults((prev) => [...prev, result]);
+      setResolvedCount((n) => n + 1);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkStarted, resolvedCount]);
+
+  const checks = checkResults;
 
   // Re-run automatically if the target device changes.
   useEffect(() => {
     setCheckStarted(false);
     setResolvedCount(0);
+    setCheckResults([]);
   }, [target]);
 
-  const ready = checkStarted && resolvedCount >= checks.length && checks.every((c) => c.pass);
+  const CHECK_LABELS = [
+    "Windows 10 / 11 compatible",
+    "Startup folder writable",
+    "PowerShell available",
+    "Roaming AppData available",
+  ];
+  const ready = checkStarted && resolvedCount >= CHECK_LABELS.length && checks.every((c) => c.pass);
 
   function download() {
     downloadAgentInstaller({
@@ -365,7 +421,7 @@ function AgentCompatibility({
             Automatic feature analysis for installing the FileLink background agent on this PC.
           </p>
         </div>
-        {checkStarted && resolvedCount >= checks.length && (
+        {checkStarted && resolvedCount >= CHECK_LABELS.length && (
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
               ready ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"
@@ -392,11 +448,12 @@ function AgentCompatibility({
       {checkStarted && (
         <>
           <ul className="grid gap-2 sm:grid-cols-2">
-            {checks.map((c, i) => {
-              const state = i < resolvedCount ? (c.pass ? "pass" : "fail") : i === resolvedCount ? "checking" : "pending";
+            {CHECK_LABELS.map((label, i) => {
+              const state = i < resolvedCount ? (checks[i].pass ? "pass" : "fail") : i === resolvedCount ? "checking" : "pending";
+              const note = i < resolvedCount ? checks[i].note : state === "checking" ? "analyzing…" : "waiting…";
               return (
                 <li
-                  key={c.label}
+                  key={label}
                   className={`flex items-start gap-2 rounded-xl border p-3 transition-colors ${
                     state === "pending" ? "border-border/40 bg-cardhover/20 opacity-50" : "border-border/60 bg-cardhover/40"
                   }`}
@@ -406,17 +463,15 @@ function AgentCompatibility({
                   {state === "checking" && <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />}
                   {state === "pending" && <span className="mt-1 size-2 shrink-0 rounded-full bg-muted-foreground/30" />}
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-foreground">{c.label}</div>
-                    <div className="truncate font-mono text-[11px] text-muted-foreground">
-                      {state === "checking" ? "analyzing…" : state === "pending" ? "waiting…" : c.note}
-                    </div>
+                    <div className="text-xs font-semibold text-foreground">{label}</div>
+                    <div className="truncate font-mono text-[11px] text-muted-foreground">{note}</div>
                   </div>
                 </li>
               );
             })}
           </ul>
 
-          {resolvedCount >= checks.length && !ready && (
+          {resolvedCount >= CHECK_LABELS.length && !ready && (
             <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
               This PC does not meet agent requirements. The FileLink agent supports Windows 10/11 with PowerShell.
             </div>

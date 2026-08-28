@@ -9,6 +9,7 @@ import { ControlTab } from "@/components/link/ControlTab";
 import { PcActionBar } from "@/components/link/PcActionBar";
 import { BackgroundAgentDownload } from "@/components/link/BackgroundAgentDownload";
 import { TransfersPanel } from "@/components/link/TransfersDialog";
+import { DevicesTab } from "@/components/link/DevicesTab";
 import { TransferManager } from "@/components/link/TransferManager";
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
   Download,
   FolderOpen,
   Inbox,
+  Laptop,
   Link as LinkIcon,
   LogOut,
   Menu,
@@ -65,7 +67,25 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type MainTab = "files" | "tasks" | "pcinfo" | "control" | "terminal" | "transfers";
+type MainTab = "files" | "tasks" | "pcinfo" | "control" | "terminal" | "transfers" | "devices";
+
+function loadSeenDeviceIds(roomCode: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`filelink:seen-devices:${roomCode}`);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+function markDeviceSeen(roomCode: string, id: string) {
+  try {
+    const set = loadSeenDeviceIds(roomCode);
+    set.add(id);
+    localStorage.setItem(`filelink:seen-devices:${roomCode}`, JSON.stringify([...set]));
+  } catch {
+    /* best-effort — worst case the banner may reappear once more */
+  }
+}
 
 function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -82,7 +102,6 @@ function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [newDevice, setNewDevice] = useState<DeviceInfo | null>(null);
   const [rename, setRename] = useState("");
-  const prevDevicesRef = useRef<DeviceInfo[]>([]);
 
   useEffect(() => {
     setSession(loadSession());
@@ -106,16 +125,19 @@ function Index() {
   }, [refresh]);
 
   // Detect newly connected devices and show a banner with inline rename.
+  // Persisted to localStorage (per room) so a page refresh doesn't treat
+  // devices you've already seen/dismissed as brand new again — before this,
+  // the "seen" tracking only lived in memory and reset on every reload.
   useEffect(() => {
-    const prev = prevDevicesRef.current;
-    const prevIds = new Set(prev.map((d) => d.id));
-    const arrived = devices.find((d) => !prevIds.has(d.id) && d.id !== session?.deviceId);
+    if (!session) return;
+    const seen = loadSeenDeviceIds(session.roomCode);
+    const arrived = devices.find((d) => !seen.has(d.id) && d.id !== session.deviceId);
     if (arrived && !newDevice) {
       setNewDevice(arrived);
       setRename(arrived.name);
+      markDeviceSeen(session.roomCode, arrived.id);
     }
-    prevDevicesRef.current = devices;
-  }, [devices, session?.deviceId, newDevice]);
+  }, [devices, session, newDevice]);
 
   if (!session) return <Connect onConnected={setSession} />;
 
@@ -170,6 +192,7 @@ function Index() {
       {tab === "tasks" && <TasksTab session={session} devices={devices} />}
       {tab === "pcinfo" && <PcInfoTab session={session} devices={devices} />}
       {tab === "control" && <ControlTab session={session} devices={devices} />}
+      {tab === "devices" && <DevicesTab session={session} devices={devices} onChanged={setDevices} />}
       {tab === "transfers" && (
         <TransfersPanel session={session} sent={sent} received={received} defaultView={transfersView} />
       )}
@@ -379,7 +402,7 @@ function Index() {
 
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {navItems.map(({ key, short, Icon }) => (
           <button
             key={key}
@@ -470,6 +493,7 @@ const NAV_ITEMS = [
   { key: "tasks", label: "Tasks", short: "Tasks", Icon: Inbox },
   { key: "pcinfo", label: "PC Setup", short: "PC", Icon: Settings },
   { key: "control", label: "Control Center", short: "Ctrl", Icon: Power },
+  { key: "devices", label: "Devices", short: "Devices", Icon: Laptop },
   { key: "transfers", label: "Transfers", short: "Xfers", Icon: SendHorizontal },
   { key: "terminal", label: "Terminal", short: "Term", Icon: TerminalIcon },
 ] as const satisfies ReadonlyArray<{

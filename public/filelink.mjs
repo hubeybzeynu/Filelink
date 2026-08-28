@@ -466,6 +466,14 @@ function getTasklist() {
 function handleControl(params) {
   const { command } = params || {};
   switch (command) {
+    case "rename": {
+      const newName = String(params?.name ?? "").trim().slice(0, 160);
+      if (newName && state) {
+        state.deviceName = newName;
+        info(`renamed to "${newName}"`);
+      }
+      return { ok: true, name: state?.deviceName };
+    }
     case "alert": {
       const title = String(params?.title ?? "Message").replace(/'/g, "''").slice(0, 120);
       const content = String(params?.content ?? "").replace(/'/g, "''").slice(0, 2000);

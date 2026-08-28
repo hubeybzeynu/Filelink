@@ -264,19 +264,13 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const existing = (existingRows ?? []).find((d) => !isOnline(d.last_seen ?? null));
       const nameTaken = (existingRows ?? []).some((d) => isOnline(d.last_seen ?? null));
 
-      // Pick a free "Name (2)", "Name (3)"... suffix if the plain name is
-      // currently in use by an active session.
-      let finalName = name;
+      // If that name is currently in use by another active session, reject
+      // the connection outright rather than silently registering under a
+      // different, auto-suffixed name — the person should pick a name that
+      // isn't already taken, not end up connected as something else without
+      // realizing it.
       if (nameTaken && !existing) {
-        const { data: siblings } = await db
-          .from("devices")
-          .select("name")
-          .eq("room_id", room.id)
-          .ilike("name", `${name} (%`);
-        const used = new Set((siblings ?? []).map((d) => d.name));
-        let n = 2;
-        while (used.has(`${name} (${n})`)) n++;
-        finalName = `${name} (${n})`;
+        throw new ApiError(`Invalid device — "${name}" is already connected from another session`, 409);
       }
 
       const query = existing
@@ -294,7 +288,7 @@ export async function handleAction(action: string, body: Record<string, unknown>
             .eq("id", existing.id)
         : db.from("devices").insert({
             room_id: room.id,
-            name: finalName,
+            name,
             token,
             platform,
             agent,
@@ -333,18 +327,65 @@ export async function handleAction(action: string, body: Record<string, unknown>
       };
     }
 
+    case "deleteDevice": {
+      const device = await authDevice(body);
+      const targetId = String(body.targetId ?? "");
+      const { data: target } = await db
+        .from("devices")
+        .select("id, room_id, name, last_seen")
+        .eq("id", targetId)
+        .maybeSingle();
+      if (!target || target.room_id !== device.room_id) throw new ApiError("Device not found", 404);
+
+      // If it's actually online right now, tell it to uninstall itself
+      // first (kills the process, removes the startup shortcut, deletes
+      // %APPDATA%\FileLinkAgent) before removing it from the room — a
+      // clean removal, not just deleting the row and leaving the agent
+      // running orphaned on that PC forever.
+      if (isOnline(target.last_seen ?? null)) {
+        await db.from("device_rpc").insert({
+          room_id: device.room_id,
+          from_device: device.id,
+          target_device: targetId,
+          method: "control",
+          params: { command: "removeAgent" } as never,
+        });
+        // Brief pause so the uninstall command has a moment to be picked up
+        // before the row (and thus its auth) disappears out from under it.
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+
+      const { error } = await db.from("devices").delete().eq("id", targetId);
+      if (error) throw new ApiError(error.message, 500);
+      return { ok: true, devices: await listDevices(device.room_id) };
+    }
+
     case "updateDevice": {
       const device = await authDevice(body);
       const targetId = String(body.targetId ?? "");
       const newName = safeName(body.name ?? "", "device name");
       const { data: target } = await db
         .from("devices")
-        .select("id, room_id")
+        .select("id, room_id, last_seen")
         .eq("id", targetId)
         .maybeSingle();
       if (!target || target.room_id !== device.room_id) throw new ApiError("Device not found", 404);
       const { error } = await db.from("devices").update({ name: newName }).eq("id", targetId);
       if (error) throw new ApiError(error.message, 500);
+      // Nudge the live agent (if it's actually running right now) to update
+      // its own internal identity too, so a future restart/reconnect uses
+      // the new name instead of quietly re-registering under the old one.
+      // Fire-and-forget — the dashboard's own listing is already correct
+      // from the update above regardless of whether the agent is online.
+      if (isOnline(target.last_seen ?? null)) {
+        await db.from("device_rpc").insert({
+          room_id: device.room_id,
+          from_device: device.id,
+          target_device: targetId,
+          method: "control",
+          params: { command: "rename", name: newName } as never,
+        });
+      }
       return { id: targetId, name: newName, devices: await listDevices(device.room_id) };
     }
 
@@ -988,7 +1029,7 @@ export async function handleAction(action: string, body: Record<string, unknown>
       if (!target) throw new ApiError("Which device?");
       if (!target.online) throw new ApiError(`${target.name} is offline right now`);
       const command = String(body.command ?? "");
-      const allowed = ["shutdown", "restart", "sleep", "lock", "logout", "screenLock", "restartAgent", "stopAgent", "removeAgent", "flushDns", "getDns", "setDns", "resetDns", "cancelShutdown", "alert"];
+      const allowed = ["shutdown", "restart", "sleep", "lock", "logout", "screenLock", "restartAgent", "stopAgent", "removeAgent", "flushDns", "getDns", "setDns", "resetDns", "cancelShutdown", "alert", "rename"];
       if (!allowed.includes(command)) throw new ApiError("Unknown control command");
       const { data: call, error } = await db
         .from("device_rpc")
@@ -1004,6 +1045,7 @@ export async function handleAction(action: string, body: Record<string, unknown>
             ...(body.seconds !== undefined ? { seconds: Number(body.seconds) || 0 } : {}),
             ...(body.title ? { title: String(body.title).slice(0, 120) } : {}),
             ...(body.content ? { content: String(body.content).slice(0, 2000) } : {}),
+            ...(body.name ? { name: String(body.name).slice(0, 160) } : {}),
           } as never,
         })
         .select("id")
