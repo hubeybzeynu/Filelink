@@ -49,7 +49,7 @@ export function CursorTab({ session, target }: { session: Session; target: strin
   async function captureFrame() {
     if (!target) return;
     try {
-      const r = await remoteCall<{ image?: string; error?: string }>(session, target, "screenshot");
+      const r = await remoteCall<{ image?: string; error?: string }>(session, target, "screenshot", { preview: true });
       if (r.error) throw new Error(r.error);
       if (r.image) setImage(r.image.startsWith("data:") ? r.image : `data:image/jpeg;base64,${r.image}`);
     } catch (e) {

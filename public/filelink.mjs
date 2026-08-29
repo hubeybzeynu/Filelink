@@ -629,25 +629,39 @@ function handleControl(params) {
 
 // Grab the current screen and hand it back as a base64 JPEG so the dashboard
 // can mirror what is happening on this PC while commands run.
-function getScreenshot() {
+function getScreenshot(preview = false) {
   const out = path.join(os.tmpdir(), `filelink-screen-${process.pid}.jpg`);
   if (process.platform === "win32") {
     // The .NET default JPEG encoder has no explicit quality set, which
     // falls back to a low, blocky default — that's the actual cause of a
     // blurry screen share, not resolution. Setting Encoder.Quality
     // explicitly (95) fixes it without materially increasing file size.
+    //
+    // "preview" mode (used by live-refreshing views like Display's Live
+    // toggle and the Cursor tab's screen preview) instead scales down and
+    // drops quality on purpose — those refresh every couple seconds, so a
+    // full-resolution 95%-quality frame is wasted bandwidth and makes each
+    // refresh noticeably slower to arrive for no visible benefit at that
+    // size. A one-off "Capture Screen" save still gets the full-quality path.
+    const scale = preview ? "0.5" : "1.0";
+    const quality = preview ? "55L" : "95L";
     const ps = [
       "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;",
       "$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;",
-      "$bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height;",
-      "$g=[System.Drawing.Graphics]::FromImage($bmp);",
-      "$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$bmp.Size);",
+      "$full=New-Object System.Drawing.Bitmap $b.Width,$b.Height;",
+      "$g=[System.Drawing.Graphics]::FromImage($full);",
+      "$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$full.Size);",
+      `$scale=${scale};`,
+      "$bmp=New-Object System.Drawing.Bitmap([int]($b.Width*$scale),[int]($b.Height*$scale));",
+      "$g2=[System.Drawing.Graphics]::FromImage($bmp);",
+      "$g2.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear;",
+      "$g2.DrawImage($full,0,0,$bmp.Width,$bmp.Height);",
       "$enc=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' };",
       "$params=New-Object System.Drawing.Imaging.EncoderParameters(1);",
-      "$params.Param[0]=New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, 95L);",
+      `$params.Param[0]=New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, ${quality});`,
       `$bmp.Save('${out.replace(/\\/g, "\\\\")}',$enc,$params);`,
     ].join(" ");
-    runSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`);
+    runSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, preview ? 4000 : 8000);
   } else if (process.platform === "darwin") {
     runSync(`screencapture -x -t jpg "${out}"`);
   } else {
@@ -805,7 +819,7 @@ function handleRpc(call) {
     case "control":
       return handleControl(p);
     case "screenshot":
-      return getScreenshot();
+      return getScreenshot(Boolean(p?.preview));
     case "clipboardHistory":
       return { entries: clipboardHistory.slice().reverse() };
     case "clipboardWrite": {
