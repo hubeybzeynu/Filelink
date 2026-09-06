@@ -6,6 +6,15 @@ export type Session = {
   deviceName: string;
 };
 
+export type UserSession = {
+  userId: string;
+  userToken: string;
+  username: string;
+  tier: "free" | "pro" | "extended";
+  tierLabel: string;
+  tierExpiresAt: string | null;
+};
+
 export type DeviceInfo = {
   id: string;
   name: string;
@@ -31,6 +40,7 @@ export type FileRow = {
 };
 
 const KEY = "filelink.session";
+const USER_KEY = "filelink.user";
 
 export function loadSession(): Session | null {
   if (typeof window === "undefined") return null;
@@ -45,6 +55,21 @@ export function saveSession(session: Session | null) {
   if (typeof window === "undefined") return;
   if (session) window.localStorage.setItem(KEY, JSON.stringify(session));
   else window.localStorage.removeItem(KEY);
+}
+
+export function loadUserSession(): UserSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return JSON.parse(window.localStorage.getItem(USER_KEY) ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+export function saveUserSession(user: UserSession | null) {
+  if (typeof window === "undefined") return;
+  if (user) window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+  else window.localStorage.removeItem(USER_KEY);
 }
 
 export async function api<T = Record<string, any>>(
@@ -64,6 +89,30 @@ export async function api<T = Record<string, any>>(
   const data = await res.json().catch(() => ({ error: "Bad response from server" }));
   if (!res.ok || data.error) throw new Error(data.error ?? `Request failed (${res.status})`);
   return data as T;
+}
+
+/* ---- accounts & subscription tier ---- */
+
+export async function signup(username: string, password: string): Promise<UserSession> {
+  return api<UserSession>("signup", { username, password });
+}
+
+export async function userLogin(username: string, password: string): Promise<UserSession> {
+  return api<UserSession>("userLogin", { username, password });
+}
+
+export async function userMe(user: UserSession): Promise<UserSession> {
+  return api<UserSession>("userMe", { userId: user.userId, userToken: user.userToken });
+}
+
+// NOTE: does not process any real payment — see the matching comment in
+// link.server.ts. This only records which tier the account is on.
+export async function setTier(
+  user: UserSession,
+  tier: "free" | "pro" | "extended",
+  months: number,
+): Promise<UserSession> {
+  return api<UserSession>("setTier", { userId: user.userId, userToken: user.userToken, tier, months });
 }
 
 export function humanSize(n: number) {

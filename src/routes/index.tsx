@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Crown,
   Download,
   FolderOpen,
   Inbox,
@@ -39,11 +40,17 @@ import {
   api,
   loadSession,
   saveSession,
+  loadUserSession,
+  saveUserSession,
+  userMe,
   updateDevice,
   type DeviceInfo,
   type FileRow,
   type Session,
+  type UserSession,
 } from "@/lib/linkClient";
+import { AccountLogin } from "@/components/link/AccountLogin";
+import { PricingDialog } from "@/components/link/PricingDialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -88,6 +95,9 @@ function markDeviceSeen(roomCode: string, id: string) {
 }
 
 function Index() {
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [checkingUser, setCheckingUser] = useState(true);
+  const [pricingOpen, setPricingOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [cwd, setCwd] = useState("/");
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -102,6 +112,27 @@ function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [newDevice, setNewDevice] = useState<DeviceInfo | null>(null);
   const [rename, setRename] = useState("");
+
+  // Re-checks the account's session/tier on load — a stale session (deleted
+  // account, rotated token from logging in elsewhere) sends them back to
+  // the login screen instead of silently failing later.
+  useEffect(() => {
+    const stored = loadUserSession();
+    if (!stored) {
+      setCheckingUser(false);
+      return;
+    }
+    userMe(stored)
+      .then((fresh) => {
+        setUser(fresh);
+        saveUserSession(fresh);
+      })
+      .catch(() => {
+        saveUserSession(null);
+        setUser(null);
+      })
+      .finally(() => setCheckingUser(false));
+  }, []);
 
   useEffect(() => {
     setSession(loadSession());
@@ -139,7 +170,9 @@ function Index() {
     }
   }, [devices, session, newDevice]);
 
-  if (!session) return <Connect onConnected={setSession} />;
+  if (checkingUser) return null;
+  if (!user) return <AccountLogin onLoggedIn={setUser} />;
+  if (!session) return <Connect onConnected={setSession} user={user} />;
 
   const shareLink =
     typeof window !== "undefined" ? `${window.location.origin}/j/${session.roomCode}` : "";
@@ -247,6 +280,18 @@ function Index() {
           >
             <MonitorSmartphone className="size-4" />
             Add PC Target
+          </button>
+          <button
+            onClick={() => setPricingOpen(true)}
+            className="ios-btn flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-cardhover hover:text-foreground"
+          >
+            <span className="flex items-center gap-3">
+              <Crown className="size-4" />
+              My plan
+            </span>
+            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {user.tierLabel}
+            </span>
           </button>
         </nav>
 
@@ -478,6 +523,15 @@ function Index() {
       )}
 
       <AddDeviceDialog open={addDeviceOpen} onOpenChange={setAddDeviceOpen} session={session} />
+      <PricingDialog
+        open={pricingOpen}
+        onClose={() => setPricingOpen(false)}
+        user={user}
+        onUpdated={(u) => {
+          setUser(u);
+          saveUserSession(u);
+        }}
+      />
       <TransferManager
         hidden={transferManagerHidden}
         setHidden={setTransferManagerHidden}
@@ -644,7 +698,7 @@ node filelink.mjs connect ${origin}/j/${code} "Office PC"`}
   );
 }
 
-function Connect({ onConnected }: { onConnected: (s: Session) => void }) {
+function Connect({ onConnected, user }: { onConnected: (s: Session) => void; user: UserSession }) {
   const [code, setCode] = useState("");
   const [roomName, setRoomName] = useState("");
   const [deviceName, setDeviceName] = useState("My browser");
@@ -691,6 +745,8 @@ function Connect({ onConnected }: { onConnected: (s: Session) => void }) {
     try {
       const r = await api<{ room: { code: string } }>("createRoom", {
         name: roomName || "Shared drive",
+        userId: user.userId,
+        userToken: user.userToken,
       });
       await join(r.room.code);
     } catch (e) {

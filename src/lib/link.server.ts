@@ -173,10 +173,133 @@ async function resolveTarget(roomId: string, target: unknown) {
   return found;
 }
 
+// --- password hashing (Web Crypto — no node:crypto import, works on both
+// a plain Node server and an edge runtime) ---
+async function hashPassword(password: string, salt?: string): Promise<string> {
+  const useSalt = salt ?? crypto.randomUUID().replace(/-/g, "");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${useSalt}:${password}`));
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `${useSalt}:${hex}`;
+}
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const salt = stored.split(":")[0];
+  if (!salt) return false;
+  return (await hashPassword(password, salt)) === stored;
+}
+
+const TIER_LABEL: Record<string, string> = { free: "Free", pro: "Pro", extended: "Extended" };
+
+function userTierInfo(row: { tier: string; tier_expires_at: string | null }) {
+  // A paid tier that's past its expiry quietly reverts to free on read,
+  // rather than needing a cron job to sweep expired subscriptions.
+  const expired = row.tier_expires_at ? new Date(row.tier_expires_at).getTime() < Date.now() : false;
+  const tier = expired ? "free" : row.tier;
+  return { tier, tierLabel: TIER_LABEL[tier] ?? "Free", tierExpiresAt: expired ? null : row.tier_expires_at };
+}
+
+async function authUser(body: Record<string, unknown>) {
+  const userId = String(body.userId ?? "");
+  const userToken = String(body.userToken ?? "");
+  if (!userId || !userToken) throw new ApiError("Not logged in", 401);
+  const db = await admin();
+  const { data } = await db
+    .from("app_users")
+    .select("id, username, token, tier, tier_expires_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!data || data.token !== userToken) throw new ApiError("Invalid session — please log in again", 401);
+  return data as { id: string; username: string; token: string; tier: string; tier_expires_at: string | null };
+}
+
+// Looks up which subscription tier governs a room, following the same
+// expiry-aware logic as userTierInfo. Rooms created before accounts existed
+// (owner_user_id is null) have no owner to check — treated as "extended"
+// so pre-existing usage isn't suddenly locked out.
+async function roomTier(roomId: string): Promise<string> {
+  const db = await admin();
+  const { data: room } = await db.from("rooms").select("owner_user_id").eq("id", roomId).maybeSingle();
+  if (!room?.owner_user_id) return "extended";
+  const { data: owner } = await db
+    .from("app_users")
+    .select("tier, tier_expires_at")
+    .eq("id", room.owner_user_id)
+    .maybeSingle();
+  if (!owner) return "extended";
+  return userTierInfo(owner).tier;
+}
+
 export async function handleAction(action: string, body: Record<string, unknown>) {
   const db = await admin();
 
   switch (action) {
+    case "signup": {
+      const username = String(body.username ?? "").trim().toLowerCase();
+      const password = String(body.password ?? "");
+      if (!/^[a-z0-9_.-]{3,32}$/.test(username)) {
+        throw new ApiError("Username must be 3-32 characters (letters, numbers, _ . -)");
+      }
+      if (password.length < 6) throw new ApiError("Password must be at least 6 characters");
+      const { data: existing } = await db.from("app_users").select("id").ilike("username", username).maybeSingle();
+      if (existing) throw new ApiError("That username is already taken");
+      const passwordHash = await hashPassword(password);
+      const token = crypto.randomUUID();
+      const { data, error } = await db
+        .from("app_users")
+        .insert({ username, password_hash: passwordHash, token, tier: "free" })
+        .select("id, username, tier, tier_expires_at")
+        .single();
+      if (error) throw new ApiError(error.message, 500);
+      return { userId: data.id, userToken: token, username: data.username, ...userTierInfo(data) };
+    }
+
+    case "userLogin": {
+      const username = String(body.username ?? "").trim().toLowerCase();
+      const password = String(body.password ?? "");
+      const { data } = await db
+        .from("app_users")
+        .select("id, username, password_hash, tier, tier_expires_at")
+        .ilike("username", username)
+        .maybeSingle();
+      if (!data || !(await verifyPassword(password, data.password_hash))) {
+        throw new ApiError("Wrong username or password", 401);
+      }
+      // Rotate the session token on each login (doesn't invalidate the
+      // account, just any other device's stale session).
+      const token = crypto.randomUUID();
+      await db.from("app_users").update({ token }).eq("id", data.id);
+      return { userId: data.id, userToken: token, username: data.username, ...userTierInfo(data) };
+    }
+
+    case "userMe": {
+      const user = await authUser(body);
+      return { userId: user.id, username: user.username, ...userTierInfo(user) };
+    }
+
+    // NOTE: this does not process any real payment. There is no payment
+    // processor connected (that needs a real Stripe/etc. account and API
+    // keys, which aren't available here) — this only records which tier
+    // the account is on. Wire a real charge in before relying on this for
+    // anything but local testing, or anyone can grant themselves Pro/
+    // Extended for free.
+    case "setTier": {
+      const user = await authUser(body);
+      const tier = String(body.tier ?? "");
+      const months = Math.max(1, Math.min(24, Number(body.months) || 1));
+      if (!["free", "pro", "extended"].includes(tier)) throw new ApiError("Invalid tier");
+      const expiresAt =
+        tier === "free" ? null : new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await db
+        .from("app_users")
+        .update({ tier, tier_expires_at: expiresAt })
+        .eq("id", user.id)
+        .select("id, username, tier, tier_expires_at")
+        .single();
+      if (error) throw new ApiError(error.message, 500);
+      return { userId: data.id, username: data.username, ...userTierInfo(data) };
+    }
+
     case "createRoom": {
       const name = String(body.name ?? "").trim() || "Shared drive";
       let code = randomCode();
@@ -185,9 +308,20 @@ export async function handleAction(action: string, body: Record<string, unknown>
         if (!existing) break;
         code = randomCode();
       }
+      // Optional — a room can still be created while logged out (matches
+      // existing behavior), it just won't have tier-gated admin access.
+      let ownerUserId: string | null = null;
+      if (body.userId && body.userToken) {
+        try {
+          const owner = await authUser(body);
+          ownerUserId = owner.id;
+        } catch {
+          /* invalid/expired session — create the room anonymously rather than fail */
+        }
+      }
       const { data, error } = await db
         .from("rooms")
-        .insert({ code, name: name.slice(0, 80) })
+        .insert({ code, name: name.slice(0, 80), owner_user_id: ownerUserId })
         .select("id, code, name")
         .single();
       if (error) throw new ApiError(error.message, 500);
@@ -762,6 +896,16 @@ export async function handleAction(action: string, body: Record<string, unknown>
       if (!target.online) throw new ApiError(`${target.name} is offline right now`);
       const method = String(body.method ?? "");
       if (!["exec"].includes(method)) throw new ApiError("Unknown streamed request");
+
+      // Enforced here, not just in the UI — this is the one chokepoint
+      // every admin-shell / exec command passes through (Terminal admin
+      // mode, the standalone exec command, Cursor, Alert questions), so
+      // there's no client-side-only toggle to work around by running
+      // filelink.mjs directly instead of through the dashboard.
+      const tier = await roomTier(device.room_id);
+      if (tier === "free") {
+        throw new ApiError("Upgrade your plan to use admin commands", 402);
+      }
 
       const { data: call, error } = await db
         .from("device_rpc")
