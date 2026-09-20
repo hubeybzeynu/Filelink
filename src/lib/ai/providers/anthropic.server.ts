@@ -57,13 +57,25 @@ export async function callAnthropic(
     payload.tools = formattedTools;
   }
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  // Support Omniroute local proxy or direct Anthropic API
+  const baseUrl = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "anthropic-version": "2023-06-01",
+  };
+
+  // Use ANTHROPIC_AUTH_TOKEN for Omniroute, or x-api-key for direct API
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  } else {
+    headers["x-api-key"] = config.apiKey;
+  }
+
+  const res = await fetch(`${baseUrl}/v1/messages`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": config.apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 
