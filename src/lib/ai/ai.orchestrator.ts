@@ -13,16 +13,28 @@ import { redactSecrets } from "./ai-security";
  */
 function getAIConfig() {
   const provider: AIProvider = (process.env.AI_PROVIDER as AIProvider) || "anthropic";
-  const apiKey =
-    provider === "anthropic" ? process.env.ANTHROPIC_API_KEY : process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
-    throw new Error(
-      `Missing API key for ${provider}. Set ${provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"} environment variable.`,
-    );
+  if (provider === "anthropic") {
+    // Allow empty ANTHROPIC_API_KEY when using Omniroute (ANTHROPIC_AUTH_TOKEN)
+    const apiKey = process.env.ANTHROPIC_API_KEY || "";
+    const authToken = process.env.ANTHROPIC_AUTH_TOKEN;
+
+    if (!apiKey && !authToken) {
+      throw new Error(
+        "Missing API key for anthropic. Set ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN (for Omniroute) environment variable.",
+      );
+    }
+
+    return { provider, apiKey };
+  } else {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("Missing API key for openai. Set OPENAI_API_KEY environment variable.");
+    }
+
+    return { provider, apiKey };
   }
-
-  return { provider, apiKey };
 }
 
 /**
