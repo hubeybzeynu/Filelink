@@ -34,6 +34,13 @@ export const Route = createFileRoute("/api/ai")({
                 return json({ error: "Missing message" }, { status: 400 });
               }
 
+              console.log("[AI API] Received chat request:", {
+                message: message.substring(0, 50) + "...",
+                deviceId,
+                roomId,
+                historyLength: conversationHistory?.length || 0,
+              });
+
               // Track execution progress for real-time feedback
               const executionSteps: Array<{
                 tool: string;

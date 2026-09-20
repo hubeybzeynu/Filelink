@@ -51,9 +51,22 @@ export async function runAIInference(
 }> {
   const { provider, apiKey } = getAIConfig();
 
+  console.log("[AI Orchestrator] Running inference with:", {
+    provider,
+    model: provider === "anthropic" ? process.env.ANTHROPIC_MODEL : process.env.AI_MODEL,
+    baseUrl: process.env.ANTHROPIC_BASE_URL,
+    messagesCount: messages.length,
+    toolsCount: availableTools.length,
+  });
+
   try {
     if (provider === "anthropic") {
       const result = await callAnthropic({ apiKey }, messages, availableTools, systemPrompt);
+
+      console.log("[AI Orchestrator] Anthropic response:", {
+        contentBlocks: result.content?.length,
+        stopReason: result.stop_reason,
+      });
 
       // Extract text content and tool calls from Anthropic response
       const content = result.content
@@ -67,6 +80,11 @@ export async function runAIInference(
           name: c.name,
           input: c.input,
         }));
+
+      console.log("[AI Orchestrator] Extracted:", {
+        contentLength: content.length,
+        toolCallsCount: toolCalls.length,
+      });
 
       return {
         role: "assistant",
