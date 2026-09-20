@@ -137,6 +137,53 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
         throw new Error("Invalid response format");
       }
 
+      // Show execution steps from server response
+      if (data.executionSteps && Array.isArray(data.executionSteps)) {
+        for (const serverStep of data.executionSteps) {
+          const stepId = crypto.randomUUID();
+
+          // Add step
+          const newStep: AITaskStep = {
+            id: stepId,
+            task_id: "",
+            device_id: null,
+            device_name: null,
+            type: "command",
+            title: serverStep.tool,
+            status: serverStep.status === "running" ? "running" : serverStep.status === "failed" ? "failed" : "completed",
+            command: serverStep.tool,
+            working_directory: null,
+            input: null,
+            output: serverStep.output || null,
+            error: serverStep.error || null,
+            diff: null,
+            risk_level: "medium",
+            started_at: new Date().toISOString(),
+            completed_at: serverStep.status !== "running" ? new Date().toISOString() : null,
+          };
+
+          setExecutionSteps((prev) => [...prev, newStep]);
+
+          // Show live chunks if available
+          if (serverStep.chunks && serverStep.chunks.length > 0) {
+            setActivityState("executing");
+            setThinkingText(`Running ${serverStep.tool}...`);
+
+            for (const chunk of serverStep.chunks) {
+              await new Promise((r) => setTimeout(r, 50));
+              // Update output progressively
+              setExecutionSteps((prev) =>
+                prev.map((s) =>
+                  s.id === stepId
+                    ? { ...s, output: (s.output || "") + chunk }
+                    : s
+                )
+              );
+            }
+          }
+        }
+      }
+
       // Process messages with animations
       for (const msg of data.messages) {
         if (msg.role === "assistant" && msg.content) {
@@ -156,30 +203,7 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
           setStreamingContent("");
           setActivityState("idle");
         } else if (msg.role === "tool" && msg.tool_name) {
-          setActivityState("executing");
-          setThinkingText(`Running ${msg.tool_name}...`);
-
-          // Add or update execution step
-          if (!currentStepId) {
-            currentStepId = addExecutionStep({
-              tool: msg.tool_name,
-              input: msg.tool_call || {},
-            });
-          }
-
-          await new Promise((r) => setTimeout(r, 300));
-
-          // Update with result
-          const hasError = msg.content?.includes("Error:") || msg.content?.includes("error");
-
-          updateExecutionStep(currentStepId, {
-            status: hasError ? "failed" : "completed",
-            output: hasError ? null : msg.content,
-            error: hasError ? msg.content : null,
-          });
-
           setMessages((prev) => [...prev, msg]);
-          currentStepId = null;
         }
       }
 

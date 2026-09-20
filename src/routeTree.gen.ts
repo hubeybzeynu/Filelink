@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiAiRouteImport } from './routes/api/ai'
+import { Route as ApiAiStreamRouteImport } from './routes/api/ai-stream'
 import { Route as JCodeRouteImport } from './routes/j.$code'
 import { Route as ApiPublicLinkRouteImport } from './routes/api/public/link'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiAiRoute = ApiAiRouteImport.update({
   id: '/api/ai',
   path: '/api/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiStreamRoute = ApiAiStreamRouteImport.update({
+  id: '/api/ai-stream',
+  path: '/api/ai-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JCodeRoute = JCodeRouteImport.update({
@@ -38,12 +44,14 @@ const ApiPublicLinkRoute = ApiPublicLinkRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/ai': typeof ApiAiRoute
+  '/api/ai-stream': typeof ApiAiStreamRoute
   '/j/$code': typeof JCodeRoute
   '/api/public/link': typeof ApiPublicLinkRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/ai': typeof ApiAiRoute
+  '/api/ai-stream': typeof ApiAiStreamRoute
   '/j/$code': typeof JCodeRoute
   '/api/public/link': typeof ApiPublicLinkRoute
 }
@@ -51,20 +59,29 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/ai': typeof ApiAiRoute
+  '/api/ai-stream': typeof ApiAiStreamRoute
   '/j/$code': typeof JCodeRoute
   '/api/public/link': typeof ApiPublicLinkRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/ai' | '/j/$code' | '/api/public/link'
+  fullPaths:
+    '/' | '/api/ai' | '/api/ai-stream' | '/j/$code' | '/api/public/link'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/ai' | '/j/$code' | '/api/public/link'
-  id: '__root__' | '/' | '/api/ai' | '/j/$code' | '/api/public/link'
+  to: '/' | '/api/ai' | '/api/ai-stream' | '/j/$code' | '/api/public/link'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/ai'
+    | '/api/ai-stream'
+    | '/j/$code'
+    | '/api/public/link'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAiRoute: typeof ApiAiRoute
+  ApiAiStreamRoute: typeof ApiAiStreamRoute
   JCodeRoute: typeof JCodeRoute
   ApiPublicLinkRoute: typeof ApiPublicLinkRoute
 }
@@ -83,6 +100,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai'
       fullPath: '/api/ai'
       preLoaderRoute: typeof ApiAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai-stream': {
+      id: '/api/ai-stream'
+      path: '/api/ai-stream'
+      fullPath: '/api/ai-stream'
+      preLoaderRoute: typeof ApiAiStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/j/$code': {
@@ -105,6 +129,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAiRoute: ApiAiRoute,
+  ApiAiStreamRoute: ApiAiStreamRoute,
   JCodeRoute: JCodeRoute,
   ApiPublicLinkRoute: ApiPublicLinkRoute,
 }
