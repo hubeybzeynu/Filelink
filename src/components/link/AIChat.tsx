@@ -1,5 +1,5 @@
-// AI Chat Component - Claude-style with real-time streaming
-// Shows thinking, live command execution, auto-retry on errors
+// AI Chat Component - Claude-style with REAL-TIME SSE streaming
+// Live thinking, tool execution, and command output streaming
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Loader2, AlertCircle } from "lucide-react";
@@ -25,6 +25,7 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,47 +34,6 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, executionSteps, streamingContent, thinkingText]);
-
-  const addExecutionStep = (data: { tool: string; input: unknown }): string => {
-    const stepId = crypto.randomUUID();
-    const newStep: AITaskStep = {
-      id: stepId,
-      task_id: "",
-      device_id: null,
-      device_name: null,
-      type: "command",
-      title: `${data.tool}`,
-      status: "running",
-      command: JSON.stringify(data.input),
-      working_directory: null,
-      input: data.input as Record<string, unknown>,
-      output: null,
-      error: null,
-      diff: null,
-      risk_level: "medium",
-      started_at: new Date().toISOString(),
-      completed_at: null,
-    };
-    setExecutionSteps((prev) => [...prev, newStep]);
-    return stepId;
-  };
-
-  const updateExecutionStep = (stepId: string, updates: Partial<AITaskStep>) => {
-    setExecutionSteps((prev) =>
-      prev.map((step) =>
-        step.id === stepId
-          ? {
-              ...step,
-              ...updates,
-              completed_at:
-                updates.status === "completed" || updates.status === "failed"
-                  ? new Date().toISOString()
-                  : step.completed_at,
-            }
-          : step
-      )
-    );
-  };
 
   const sendMessage = async () => {
     if (!input.trim() || activityState !== "idle") return;
@@ -110,105 +70,201 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
 
       abortControllerRef.current = new AbortController();
 
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: abortControllerRef.current.signal,
-        body: JSON.stringify({
-          action: "chat",
-          message: userMessage,
-          session: {
-            deviceId: session.deviceId,
-            deviceToken: session.deviceToken,
-          },
-          conversationHistory: messages,
-          selectedDevices,
-        }),
+      // Use SSE streaming endpoint for real-time updates
+      const params = new URLSearchParams({
+        message: userMessage,
+        deviceId: session.deviceId,
+        deviceToken: session.deviceToken,
+        selectedDevices: JSON.stringify(selectedDevices),
+        conversationHistory: JSON.stringify(messages),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(errorData.error || "AI request failed");
-      }
+      const eventSource = new EventSource(`/api/ai-stream?${params}`);
+      eventSourceRef.current = eventSource;
 
-      const data = await res.json();
+      eventSource.addEventListener("thinking", (e) => {
+        const data = JSON.parse(e.data);
+        setActivityState("thinking");
+        setThinkingText(data.message || "Thinking...");
+      });
 
-      if (!data.messages || !Array.isArray(data.messages)) {
-        throw new Error("Invalid response format");
-      }
+      eventSource.addEventListener("tool_start", (e) => {
+        const data = JSON.parse(e.data);
+        setActivityState("executing");
+        setThinkingText(`Running ${data.tool}...`);
 
-      // Show execution steps from server response
-      if (data.executionSteps && Array.isArray(data.executionSteps)) {
-        for (const serverStep of data.executionSteps) {
-          const stepId = crypto.randomUUID();
+        // Add new execution step
+        const stepId = crypto.randomUUID();
+        currentStepId = stepId;
 
-          // Add step
-          const newStep: AITaskStep = {
-            id: stepId,
-            task_id: "",
-            device_id: null,
-            device_name: null,
-            type: "command",
-            title: serverStep.tool,
-            status: serverStep.status === "running" ? "running" : serverStep.status === "failed" ? "failed" : "completed",
-            command: serverStep.tool,
-            working_directory: null,
-            input: null,
-            output: serverStep.output || null,
-            error: serverStep.error || null,
-            diff: null,
-            risk_level: "medium",
-            started_at: new Date().toISOString(),
-            completed_at: serverStep.status !== "running" ? new Date().toISOString() : null,
-          };
+        const newStep: AITaskStep = {
+          id: stepId,
+          task_id: "",
+          device_id: null,
+          device_name: null,
+          type: "command",
+          title: data.tool,
+          status: "running",
+          command: JSON.stringify(data.input, null, 2),
+          working_directory: null,
+          input: data.input as Record<string, unknown>,
+          output: "",
+          error: null,
+          diff: null,
+          risk_level: "medium",
+          started_at: data.timestamp,
+          completed_at: null,
+        };
+        setExecutionSteps((prev) => [...prev, newStep]);
+      });
 
-          setExecutionSteps((prev) => [...prev, newStep]);
+      eventSource.addEventListener("tool_chunk", (e) => {
+        const data = JSON.parse(e.data);
+        // Append chunk to current step's output in real-time
+        if (currentStepId) {
+          setExecutionSteps((prev) =>
+            prev.map((step) =>
+              step.id === currentStepId
+                ? { ...step, output: (step.output || "") + data.chunk }
+                : step,
+            ),
+          );
+        }
+      });
 
-          // Show live chunks if available
-          if (serverStep.chunks && serverStep.chunks.length > 0) {
-            setActivityState("executing");
-            setThinkingText(`Running ${serverStep.tool}...`);
+      eventSource.addEventListener("tool_progress", (e) => {
+        const data = JSON.parse(e.data);
+        setThinkingText(data.status);
+      });
 
-            for (const chunk of serverStep.chunks) {
-              await new Promise((r) => setTimeout(r, 50));
-              // Update output progressively
-              setExecutionSteps((prev) =>
-                prev.map((s) =>
-                  s.id === stepId
-                    ? { ...s, output: (s.output || "") + chunk }
-                    : s
-                )
-              );
+      eventSource.addEventListener("tool_result", (e) => {
+        const data = JSON.parse(e.data);
+        // Mark current step as completed
+        if (currentStepId) {
+          setExecutionSteps((prev) =>
+            prev.map((step) =>
+              step.id === currentStepId
+                ? {
+                    ...step,
+                    status: "completed",
+                    output: step.output || data.result,
+                    completed_at: data.timestamp,
+                  }
+                : step,
+            ),
+          );
+          currentStepId = null;
+        }
+      });
+
+      eventSource.addEventListener("tool_error", (e) => {
+        const data = JSON.parse(e.data);
+        // Mark current step as failed
+        if (currentStepId) {
+          setExecutionSteps((prev) =>
+            prev.map((step) =>
+              step.id === currentStepId
+                ? {
+                    ...step,
+                    status: "failed",
+                    error: data.error,
+                    completed_at: data.timestamp,
+                  }
+                : step,
+            ),
+          );
+          currentStepId = null;
+        }
+      });
+
+      eventSource.addEventListener("complete", (e) => {
+        const data = JSON.parse(e.data);
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // Process final messages
+        if (data.messages && Array.isArray(data.messages)) {
+          for (const msg of data.messages) {
+            if (msg.role === "assistant" && msg.content) {
+              // Stream response word by word
+              setActivityState("streaming");
+              const words = msg.content.split(/(\s+)/);
+              let accumulated = "";
+
+              const streamWords = async () => {
+                for (const word of words) {
+                  accumulated += word;
+                  setStreamingContent(accumulated);
+                  await new Promise((r) => setTimeout(r, 20));
+                }
+
+                setMessages((prev) => [...prev, msg]);
+                setStreamingContent("");
+                setActivityState("idle");
+              };
+
+              void streamWords();
+            } else if (msg.role === "tool" && msg.tool_name) {
+              setMessages((prev) => [...prev, msg]);
             }
           }
         }
-      }
 
-      // Process messages with animations
-      for (const msg of data.messages) {
-        if (msg.role === "assistant" && msg.content) {
-          setActivityState("streaming");
+        setActivityState("idle");
+        setThinkingText("");
+      });
 
-          // Stream response word by word
-          const words = msg.content.split(/(\s+)/);
-          let accumulated = "";
-
-          for (const word of words) {
-            accumulated += word;
-            setStreamingContent(accumulated);
-            await new Promise((r) => setTimeout(r, 20));
-          }
-
-          setMessages((prev) => [...prev, msg]);
-          setStreamingContent("");
-          setActivityState("idle");
-        } else if (msg.role === "tool" && msg.tool_name) {
-          setMessages((prev) => [...prev, msg]);
+      eventSource.addEventListener("error", (e: Event) => {
+        const messageEvent = e as MessageEvent;
+        let errorData;
+        try {
+          errorData = JSON.parse(messageEvent.data || "{}");
+        } catch {
+          errorData = { message: "Connection error" };
         }
-      }
 
-      setActivityState("idle");
-      setThinkingText("");
+        eventSource.close();
+        eventSourceRef.current = null;
+        setActivityState("idle");
+        setThinkingText("");
+
+        const errorMsg: AIMessage = {
+          id: crypto.randomUUID(),
+          task_id: "",
+          role: "assistant",
+          content: `❌ ${errorData.message || "An error occurred"}`,
+          tool_name: null,
+          tool_call: null,
+          created_at: new Date().toISOString(),
+        };
+
+        setMessages((prev) => [...prev, errorMsg]);
+      });
+
+      eventSource.onerror = () => {
+        if (eventSource.readyState === EventSource.CLOSED) {
+          eventSource.close();
+          eventSourceRef.current = null;
+
+          if (activityState !== "idle") {
+            setActivityState("idle");
+            setThinkingText("");
+
+            const errorMsg: AIMessage = {
+              id: crypto.randomUUID(),
+              task_id: "",
+              role: "assistant",
+              content:
+                "❌ Connection lost. Check that Omniroute is running on http://localhost:20128 and the dev server is active.",
+              tool_name: null,
+              tool_call: null,
+              created_at: new Date().toISOString(),
+            };
+
+            setMessages((prev) => [...prev, errorMsg]);
+          }
+        }
+      };
     } catch (error) {
       console.error("AI Error:", error);
 
@@ -220,7 +276,6 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
       setActivityState("idle");
       setThinkingText("");
 
-      // Show detailed error
       let errorText = "Something went wrong. ";
 
       if (error instanceof Error) {
@@ -258,6 +313,8 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
 
   const cancelRequest = () => {
     abortControllerRef.current?.abort();
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
     setActivityState("idle");
     setThinkingText("");
     setStreamingContent("");
@@ -272,7 +329,9 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
             <Sparkles className="size-5 text-primary" />
             <div>
               <h2 className="text-sm font-semibold">FileLink AI</h2>
-              <p className="text-[10px] text-muted-foreground">Powered by Claude</p>
+              <p className="text-[10px] text-muted-foreground">
+                Powered by Claude • Real-time streaming
+              </p>
             </div>
           </div>
           {selectedDevices.length > 0 && (
@@ -288,12 +347,10 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
         {messages.length === 0 && activityState === "idle" && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Sparkles className="size-12 mb-4 text-primary/40" />
-            <h3 className="text-base font-semibold text-foreground mb-1">
-              Hey! I'm FileLink AI.
-            </h3>
+            <h3 className="text-base font-semibold text-foreground mb-1">Hey! I'm FileLink AI.</h3>
             <p className="text-xs text-muted-foreground max-w-sm mb-6">
-              I can help you manage your connected devices, run commands, troubleshoot issues, transfer
-              files, and more.
+              I can help you manage your connected devices, run commands, troubleshoot issues,
+              transfer files, and more.
             </p>
 
             <div className="grid gap-2 w-full max-w-md">
@@ -425,7 +482,7 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
         </div>
         <p className="mt-2 text-center text-[10px] text-muted-foreground">
           {activityState !== "idle"
-            ? "Click ✕ to cancel • Processing..."
+            ? "Click ✕ to cancel • Live streaming active..."
             : "Shift+Enter for new line • Enter to send"}
         </p>
       </div>

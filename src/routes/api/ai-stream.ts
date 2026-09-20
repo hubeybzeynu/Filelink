@@ -9,16 +9,22 @@ import { handleAction } from "@/lib/link.server";
 export const Route = createFileRoute("/api/ai-stream")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        const body = await request.json();
-        const { message, session, conversationHistory, selectedDevices } = body;
+      GET: async ({ request }) => {
+        const url = new URL(request.url);
+        const message = url.searchParams.get("message");
+        const deviceId = url.searchParams.get("deviceId");
+        const deviceToken = url.searchParams.get("deviceToken");
+        const selectedDevices = JSON.parse(url.searchParams.get("selectedDevices") || "[]");
+        const conversationHistory = JSON.parse(url.searchParams.get("conversationHistory") || "[]");
 
-        if (!session || !session.deviceId || !session.deviceToken) {
+        if (!deviceId || !deviceToken) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },
           });
         }
+
+        const session = { deviceId, deviceToken };
 
         // Validate device session
         try {
@@ -59,12 +65,34 @@ export const Route = createFileRoute("/api/ai-stream")({
                     });
 
                     try {
-                      // Execute tool
-                      const result = await executeAITool(toolName, input, {
-                        roomId,
-                        deviceId,
-                        deviceToken: session.deviceToken,
-                      });
+                      // Execute tool with LIVE STREAMING callbacks
+                      const result = await executeAITool(
+                        toolName,
+                        input,
+                        {
+                          roomId,
+                          deviceId,
+                          deviceToken: session.deviceToken,
+                        },
+                        {
+                          // Stream chunks in real-time
+                          onChunk: (chunk: string) => {
+                            send("tool_chunk", {
+                              tool: toolName,
+                              chunk,
+                              timestamp: new Date().toISOString(),
+                            });
+                          },
+                          // Stream progress updates
+                          onProgress: (status: string) => {
+                            send("tool_progress", {
+                              tool: toolName,
+                              status,
+                              timestamp: new Date().toISOString(),
+                            });
+                          },
+                        }
+                      );
 
                       // Send tool result
                       send("tool_result", {
