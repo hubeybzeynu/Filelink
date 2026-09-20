@@ -321,7 +321,7 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full max-h-full flex-col overflow-hidden">
       {/* Chat Header */}
       <div className="border-b border-border/50 p-4">
         <div className="flex items-center justify-between">
@@ -343,7 +343,7 @@ export function AIChat({ session, devices, selectedDevices }: AIChatProps) {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 no-scrollbar">
         {messages.length === 0 && activityState === "idle" && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Sparkles className="size-12 mb-4 text-primary/40" />

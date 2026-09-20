@@ -15,7 +15,7 @@ export function AITab({ session, devices }: AITabProps) {
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card shadow-lg">
+    <div className="flex h-full max-h-full flex-col rounded-xl border border-border bg-card shadow-lg overflow-hidden">
       {/* Header with Device Selector */}
       <div className="flex items-center justify-between border-b border-border/50 p-4">
         <div>

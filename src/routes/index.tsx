@@ -29,6 +29,8 @@ import {
   LogOut,
   Menu,
   MonitorSmartphone,
+  PanelLeft,
+  PanelRight,
   Plus,
   Power,
   RefreshCw,
@@ -36,6 +38,7 @@ import {
   Settings,
   Sparkles,
   Terminal as TerminalIcon,
+  X,
 } from "lucide-react";
 
 import {
@@ -113,6 +116,8 @@ function Index() {
   const [transferManagerCollapsed, setTransferManagerCollapsed] = useState(false);
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const [newDevice, setNewDevice] = useState<DeviceInfo | null>(null);
   const [rename, setRename] = useState("");
 
@@ -254,7 +259,11 @@ function Index() {
       <Splash />
 
       {/* Desktop sidebar */}
-      <aside className="z-20 hidden h-full w-72 shrink-0 flex-col border-r border-border bg-card p-6 shadow-2xl md:flex">
+      <aside
+        className={`z-20 h-full shrink-0 flex-col border-r border-border bg-card p-6 shadow-2xl transition-all duration-300 ease-in-out ${
+          leftSidebarOpen ? "md:flex md:w-72" : "md:hidden"
+        }`}
+      >
         <div className="mb-8 flex items-center gap-3 px-2">
           <div className="grid size-8 place-items-center rounded-lg border border-primary/30 bg-primary/20 text-primary">
             <SendHorizontal className="size-4" />
@@ -336,6 +345,15 @@ function Index() {
       <div className="animate-main-ui relative flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-8 md:py-5">
           <div className="flex min-w-0 items-center gap-3">
+            {/* Desktop left sidebar toggle */}
+            <button
+              onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+              aria-label="Toggle sidebar"
+              className="ios-btn hidden size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground md:grid"
+            >
+              <PanelLeft className="size-5" />
+            </button>
+            {/* Mobile menu toggle */}
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
@@ -405,6 +423,19 @@ function Index() {
             >
               <RefreshCw className="size-4" />
             </button>
+            {/* Right sidebar toggle */}
+            <button
+              onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+              className={`ios-btn grid size-10 place-items-center rounded-xl border ${
+                rightSidebarOpen
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label="Room info & devices"
+              title="Room storage & devices"
+            >
+              <PanelRight className="size-4" />
+            </button>
           </div>
         </header>
 
@@ -439,17 +470,46 @@ function Index() {
         )}
 
         <main className="flex min-h-0 flex-1 gap-4 overflow-y-auto p-4 pb-24 md:overflow-hidden md:p-8 md:pb-8">
-          <div className="no-scrollbar flex min-h-0 min-w-0 flex-1 flex-col gap-4 md:overflow-y-auto">
+          <div className="no-scrollbar flex min-h-0 w-full flex-col gap-4 md:overflow-y-auto">
             <div className="flex min-h-[420px] shrink-0 flex-col">{panel}</div>
             <div className="hidden xl:block">
               <CliCard code={session.roomCode} />
             </div>
           </div>
-          <div className="no-scrollbar hidden w-[340px] shrink-0 md:overflow-y-auto xl:block">
-            {sidePanel}
-          </div>
         </main>
       </div>
+
+      {/* Right sidebar slide-out panel */}
+      <div
+        className={`fixed right-0 top-0 z-40 h-full w-[380px] border-l border-border bg-card shadow-2xl transition-transform duration-300 ease-in-out ${
+          rightSidebarOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border/50 p-4">
+            <h2 className="text-sm font-semibold">Room Info</h2>
+            <button
+              onClick={() => setRightSidebarOpen(false)}
+              className="ios-btn grid size-8 place-items-center rounded-lg text-muted-foreground hover:text-foreground"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-4 no-scrollbar">{sidePanel}</div>
+        </div>
+      </div>
+
+      {/* Backdrop overlay */}
+      {rightSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+          onClick={() => setRightSidebarOpen(false)}
+        />
+      )}
 
       {/* Mobile floating upload — only inside the File Explorer section */}
       {tab === "files" && (

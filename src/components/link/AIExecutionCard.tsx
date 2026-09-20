@@ -22,6 +22,7 @@ interface AIExecutionCardProps {
 }
 
 export function AIExecutionCard({ step, onConfirm }: AIExecutionCardProps) {
+  // Default to collapsed (or expanded only while actively running)
   const [expanded, setExpanded] = useState(step.status === "running");
 
   const getStatusIcon = () => {
