@@ -39,8 +39,6 @@ type Process = RawProcess & {
   children?: Process[];
 };
 
-
-
 const SYSTEM_NAMES = [
   "system idle process",
   "system",
@@ -167,7 +165,6 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
     exitSelectMode();
   }
 
-
   const load = useCallback(async () => {
     if (!target) return;
     setLoading(true);
@@ -186,7 +183,6 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
     }
     setLoading(false);
   }, [session, target]);
-
 
   useEffect(() => {
     void load();
@@ -237,7 +233,13 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
             network: acc.network + c.network,
             gpu: acc.gpu + c.gpu,
           }),
-          { ram: g.parent.ram, cpu: g.parent.cpu, disk: g.parent.disk, network: g.parent.network, gpu: g.parent.gpu },
+          {
+            ram: g.parent.ram,
+            cpu: g.parent.cpu,
+            disk: g.parent.disk,
+            network: g.parent.network,
+            gpu: g.parent.gpu,
+          },
         );
         return {
           ...g.parent,
@@ -370,8 +372,6 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
         </div>
       )}
 
-
-
       {!target && (
         <div className="grid flex-1 place-items-center rounded-[20px] border border-border bg-card p-6 text-center text-muted-foreground">
           <div>
@@ -429,7 +429,11 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                               }}
                               className="grid size-5 place-items-center rounded-md text-muted-foreground hover:text-foreground"
                             >
-                              {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                              {open ? (
+                                <ChevronDown className="size-3.5" />
+                              ) : (
+                                <ChevronRight className="size-3.5" />
+                              )}
                             </button>
                           ) : (
                             <span className="size-5" />
@@ -438,7 +442,9 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                           <span className="truncate text-foreground">
                             {g.name}
                             {hasChildren && (
-                              <span className="ml-1.5 text-[10px] text-muted-foreground">({g.children!.length})</span>
+                              <span className="ml-1.5 text-[10px] text-muted-foreground">
+                                ({g.children!.length})
+                              </span>
                             )}
                           </span>
                         </div>
@@ -446,8 +452,12 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                       <td className="px-4 py-3 text-muted-foreground">{g.status || "Running"}</td>
                       <td className="px-4 py-3">{g.cpu.toFixed(1)}%</td>
                       <td className="px-4 py-3">{humanSize(g.ram)}</td>
-                      <td className="px-4 py-3">{g.disk > 0 ? `${g.disk.toFixed(1)} MB/s` : "—"}</td>
-                      <td className="px-4 py-3">{g.network > 0 ? `${g.network.toFixed(1)} Mbps` : "—"}</td>
+                      <td className="px-4 py-3">
+                        {g.disk > 0 ? `${g.disk.toFixed(1)} MB/s` : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {g.network > 0 ? `${g.network.toFixed(1)} Mbps` : "—"}
+                      </td>
                       <td className="px-4 py-3">{g.gpu > 0 ? `${g.gpu.toFixed(1)}%` : "—"}</td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -490,12 +500,20 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-2 text-muted-foreground">{c.status || "Running"}</td>
+                            <td className="px-4 py-2 text-muted-foreground">
+                              {c.status || "Running"}
+                            </td>
                             <td className="px-4 py-2">{c.cpu.toFixed(1)}%</td>
                             <td className="px-4 py-2">{humanSize(c.ram)}</td>
-                            <td className="px-4 py-2">{c.disk > 0 ? `${c.disk.toFixed(1)} MB/s` : "—"}</td>
-                            <td className="px-4 py-2">{c.network > 0 ? `${c.network.toFixed(1)} Mbps` : "—"}</td>
-                            <td className="px-4 py-2">{c.gpu > 0 ? `${c.gpu.toFixed(1)}%` : "—"}</td>
+                            <td className="px-4 py-2">
+                              {c.disk > 0 ? `${c.disk.toFixed(1)} MB/s` : "—"}
+                            </td>
+                            <td className="px-4 py-2">
+                              {c.network > 0 ? `${c.network.toFixed(1)} Mbps` : "—"}
+                            </td>
+                            <td className="px-4 py-2">
+                              {c.gpu > 0 ? `${c.gpu.toFixed(1)}%` : "—"}
+                            </td>
                             <td className="px-4 py-2 text-right">
                               <button
                                 disabled={selectMode}
@@ -513,7 +531,6 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                       })}
                   </>
                 );
-
               })}
               {grouped.length === 0 && !loading && (
                 <tr>
@@ -536,8 +553,8 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               These processes will be force-killed on{" "}
-              <span className="font-semibold text-foreground">{target}</span>. Unsaved work in those apps
-              will be lost.
+              <span className="font-semibold text-foreground">{target}</span>. Unsaved work in those
+              apps will be lost.
             </p>
             <div className="mt-5 flex gap-2">
               <button
@@ -558,7 +575,6 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
       )}
 
       <PasswordDialog
-
         open={!!lockReason}
         onOpenChange={(v) => {
           if (!v) {
@@ -596,13 +612,16 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
               <h3 className="text-base font-bold">End Task?</h3>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">
-              Are you sure to end <span className="font-semibold text-foreground">{pendingKill.name}</span> on{" "}
+              Are you sure to end{" "}
+              <span className="font-semibold text-foreground">{pendingKill.name}</span> on{" "}
               <span className="text-primary">{target}</span>?
             </p>
             <label className="mb-5 flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-cardhover/60 p-3">
               <span
                 className={`grid size-5 place-items-center rounded-md border transition-colors ${
-                  dontAskEnd ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                  dontAskEnd
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background"
                 }`}
               >
                 {dontAskEnd && (
@@ -617,7 +636,9 @@ export function TasksTab({ session, devices }: { session: Session; devices: Devi
                 checked={dontAskEnd}
                 onChange={(e) => setDontAskEnd(e.target.checked)}
               />
-              <span className="text-xs font-medium text-foreground">Don't ask me again for this session</span>
+              <span className="text-xs font-medium text-foreground">
+                Don't ask me again for this session
+              </span>
             </label>
             <div className="flex gap-3">
               <button

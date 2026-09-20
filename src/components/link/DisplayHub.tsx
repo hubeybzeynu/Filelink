@@ -6,9 +6,21 @@ import { addAudit } from "@/lib/audit";
 type Mode = "screenshot" | "record" | "camscreenshot" | "camrecord";
 
 const MODES: { key: Mode; label: string; folder: string; btn: string; icon: typeof Camera }[] = [
-  { key: "screenshot", label: "Screen Shot", folder: "screenshoot document", btn: "Capture Screen", icon: Camera },
+  {
+    key: "screenshot",
+    label: "Screen Shot",
+    folder: "screenshoot document",
+    btn: "Capture Screen",
+    icon: Camera,
+  },
   { key: "record", label: "Screen Record", folder: "record", btn: "Start Recording", icon: Video },
-  { key: "camscreenshot", label: "Camera Shot", folder: "room image", btn: "Capture Camera", icon: Camera },
+  {
+    key: "camscreenshot",
+    label: "Camera Shot",
+    folder: "room image",
+    btn: "Capture Camera",
+    icon: Camera,
+  },
   { key: "camrecord", label: "Camera Record", folder: "vedio", btn: "Start Cam Rec", icon: Video },
 ];
 
@@ -30,9 +42,12 @@ export function DisplayHub({
 
   const cfg = MODES.find((m) => m.key === mode)!;
 
-  useEffect(() => () => {
-    if (timer.current) window.clearInterval(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearInterval(timer.current);
+    },
+    [],
+  );
 
   async function capture() {
     if (!target) {
@@ -154,13 +169,19 @@ export function DisplayHub({
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           disabled={!target || busy}
-          onClick={() => (mode === "record" || mode === "camrecord" ? toggleRecord() : void capture())}
+          onClick={() =>
+            mode === "record" || mode === "camrecord" ? toggleRecord() : void capture()
+          }
           className="ios-btn flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-40"
         >
           <cfg.icon className="size-4" />
           {mode === "record" || mode === "camrecord"
-            ? live ? "Stop Recording" : cfg.btn
-            : busy ? "Capturing…" : cfg.btn}
+            ? live
+              ? "Stop Recording"
+              : cfg.btn
+            : busy
+              ? "Capturing…"
+              : cfg.btn}
         </button>
         <button
           disabled={!image}

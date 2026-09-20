@@ -48,8 +48,12 @@ export function AuditTrail() {
             <ScrollText className="size-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground">System Activity &amp; Audit Trail</h3>
-            <p className="text-xs text-muted-foreground">{events.length} immutable events recorded.</p>
+            <h3 className="text-base font-bold text-foreground">
+              System Activity &amp; Audit Trail
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {events.length} immutable events recorded.
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -94,7 +98,13 @@ export function AuditTrail() {
                 : "bg-cardhover text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f === "Clipboard" ? "Clipboard Ops" : f === "Command" ? "Commands" : f === "Power" ? "Power Events" : f}
+            {f === "Clipboard"
+              ? "Clipboard Ops"
+              : f === "Command"
+                ? "Commands"
+                : f === "Power"
+                  ? "Power Events"
+                  : f}
           </button>
         ))}
       </div>
@@ -120,7 +130,9 @@ export function AuditTrail() {
                     {new Date(e.ts).toLocaleTimeString()}
                   </td>
                   <td className="px-3 py-2 text-foreground">{e.device}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{e.category}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                    {e.category}
+                  </td>
                   <td className="px-3 py-2 text-foreground">{e.details}</td>
                   <td className="px-3 py-2">
                     <span

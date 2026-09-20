@@ -3,7 +3,6 @@ import { Clipboard, Copy, RefreshCw, Send, Trash2 } from "lucide-react";
 import { remoteCall, type Session } from "@/lib/linkClient";
 import { addAudit } from "@/lib/audit";
 
-
 type Entry = { id: string; ts: number; text: string; device: string };
 
 const KEY = "filelink.clipboard.v1";
@@ -23,7 +22,6 @@ function load(): Entry[] {
 function save(list: Entry[]) {
   window.localStorage.setItem(KEY, JSON.stringify(list.slice(-100)));
 }
-
 
 export function ClipboardPanel({ session, target }: { session: Session; target: string }) {
   const [history, setHistory] = useState<Entry[]>([]);
@@ -89,7 +87,6 @@ export function ClipboardPanel({ session, target }: { session: Session; target: 
     setBusy(false);
   }
 
-
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-[20px] border border-border bg-card p-5 md:p-7">
@@ -98,7 +95,9 @@ export function ClipboardPanel({ session, target }: { session: Session; target: 
             <Clipboard className="size-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground">Remote Clipboard &amp; Input Sync</h3>
+            <h3 className="text-base font-bold text-foreground">
+              Remote Clipboard &amp; Input Sync
+            </h3>
             <p className="text-xs text-muted-foreground">
               Push text straight into the clipboard of {target || "the selected PC"}.
             </p>
@@ -126,7 +125,9 @@ export function ClipboardPanel({ session, target }: { session: Session; target: 
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-foreground">Daily Clipboard History Log</h3>
-            <p className="text-xs text-muted-foreground">Auto-flushes every day at midnight. Pull from the target PC to see what it copied.</p>
+            <p className="text-xs text-muted-foreground">
+              Auto-flushes every day at midnight. Pull from the target PC to see what it copied.
+            </p>
           </div>
           <div className="flex gap-2">
             <button
@@ -170,7 +171,11 @@ export function ClipboardPanel({ session, target }: { session: Session; target: 
                   <button
                     onClick={() => {
                       void navigator.clipboard.writeText(e.text);
-                      addAudit("Clipboard", `Copied entry locally: ${e.text.slice(0, 40)}`, "SUCCESS");
+                      addAudit(
+                        "Clipboard",
+                        `Copied entry locally: ${e.text.slice(0, 40)}`,
+                        "SUCCESS",
+                      );
                     }}
                     className="ios-btn shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:text-primary"
                     aria-label="Copy"

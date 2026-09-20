@@ -49,9 +49,15 @@ export function CursorTab({ session, target }: { session: Session; target: strin
   async function captureFrame() {
     if (!target) return;
     try {
-      const r = await remoteCall<{ image?: string; error?: string }>(session, target, "screenshot", { preview: true });
+      const r = await remoteCall<{ image?: string; error?: string }>(
+        session,
+        target,
+        "screenshot",
+        { preview: true },
+      );
       if (r.error) throw new Error(r.error);
-      if (r.image) setImage(r.image.startsWith("data:") ? r.image : `data:image/jpeg;base64,${r.image}`);
+      if (r.image)
+        setImage(r.image.startsWith("data:") ? r.image : `data:image/jpeg;base64,${r.image}`);
     } catch (e) {
       setNote(`Screen preview failed: ${(e as Error).message}`);
     }
@@ -128,7 +134,10 @@ export function CursorTab({ session, target }: { session: Session; target: strin
     if (!dragStart.current) return;
     const point = toRemotePoint(clientX, clientY);
     if (!point) return;
-    if (Math.abs(point.x - dragStart.current.x) > 3 || Math.abs(point.y - dragStart.current.y) > 3) {
+    if (
+      Math.abs(point.x - dragStart.current.x) > 3 ||
+      Math.abs(point.y - dragStart.current.y) > 3
+    ) {
       dragMoved.current = true;
     }
     sendMove(point);
@@ -152,9 +161,10 @@ export function CursorTab({ session, target }: { session: Session; target: strin
     const now = Date.now();
     if (now - scrollThrottle.current < 200) return;
     scrollThrottle.current = now;
-    void sendControl(session, target, "cursorScroll", { amount: e.deltaY > 0 ? -120 : 120, horizontal: false }).catch(
-      (err) => setNote(`Failed: ${(err as Error).message}`),
-    );
+    void sendControl(session, target, "cursorScroll", {
+      amount: e.deltaY > 0 ? -120 : 120,
+      horizontal: false,
+    }).catch((err) => setNote(`Failed: ${(err as Error).message}`));
   }
 
   return (
@@ -170,7 +180,9 @@ export function CursorTab({ session, target }: { session: Session; target: strin
           onClick={toggleLive}
           disabled={!target}
           className={`ios-btn flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold disabled:opacity-40 ${
-            live ? "border-primary bg-primary/15 text-primary" : "border-border bg-cardhover text-foreground"
+            live
+              ? "border-primary bg-primary/15 text-primary"
+              : "border-border bg-cardhover text-foreground"
           }`}
         >
           <RefreshCw className={`size-3.5 ${live ? "animate-spin" : ""}`} />
@@ -210,7 +222,12 @@ export function CursorTab({ session, target }: { session: Session; target: strin
         ) : (
           <>
             {image ? (
-              <img src={image} alt="Live screen" className="pointer-events-none h-full w-full object-contain" draggable={false} />
+              <img
+                src={image}
+                alt="Live screen"
+                className="pointer-events-none h-full w-full object-contain"
+                draggable={false}
+              />
             ) : (
               <span className="text-xs">Tap "Show screen" to see what you're clicking on</span>
             )}

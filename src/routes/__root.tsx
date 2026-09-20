@@ -86,14 +86,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "FileLink — Send files PC to PC from the command prompt" },
       {
         property: "og:description",
-        content: "Connect two PCs with one link, then send and receive files from the command prompt. Online devices get files instantly, offline devices get them from the cloud.",
+        content:
+          "Connect two PCs with one link, then send and receive files from the command prompt. Online devices get files instantly, offline devices get them from the cloud.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "FileLink — Send files PC to PC from the command prompt" },
-      { name: "twitter:description", content: "Connect two PCs with one link, then send and receive files from the command prompt. Online devices get files instantly, offline devices get them from the cloud." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/32fba846-1a0f-45fe-a4c2-f4daf604ab06/id-preview-40fa3766--cd0040e2-f0bd-4205-8581-f0e8aec07541.lovable.app-1785434049573.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/32fba846-1a0f-45fe-a4c2-f4daf604ab06/id-preview-40fa3766--cd0040e2-f0bd-4205-8581-f0e8aec07541.lovable.app-1785434049573.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Connect two PCs with one link, then send and receive files from the command prompt. Online devices get files instantly, offline devices get them from the cloud.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/32fba846-1a0f-45fe-a4c2-f4daf604ab06/id-preview-40fa3766--cd0040e2-f0bd-4205-8581-f0e8aec07541.lovable.app-1785434049573.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/32fba846-1a0f-45fe-a4c2-f4daf604ab06/id-preview-40fa3766--cd0040e2-f0bd-4205-8581-f0e8aec07541.lovable.app-1785434049573.png",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -108,7 +121,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,

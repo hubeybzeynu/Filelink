@@ -111,7 +111,6 @@ async function ensureFolderPath(roomId: string, deviceId: string, path: string) 
   return full;
 }
 
-
 type DeviceRow = {
   id: string;
   room_id: string;
@@ -177,7 +176,10 @@ async function resolveTarget(roomId: string, target: unknown) {
 // a plain Node server and an edge runtime) ---
 async function hashPassword(password: string, salt?: string): Promise<string> {
   const useSalt = salt ?? crypto.randomUUID().replace(/-/g, "");
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${useSalt}:${password}`));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`${useSalt}:${password}`),
+  );
   const hex = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -194,9 +196,15 @@ const TIER_LABEL: Record<string, string> = { free: "Free", pro: "Pro", extended:
 function userTierInfo(row: { tier: string; tier_expires_at: string | null }) {
   // A paid tier that's past its expiry quietly reverts to free on read,
   // rather than needing a cron job to sweep expired subscriptions.
-  const expired = row.tier_expires_at ? new Date(row.tier_expires_at).getTime() < Date.now() : false;
+  const expired = row.tier_expires_at
+    ? new Date(row.tier_expires_at).getTime() < Date.now()
+    : false;
   const tier = expired ? "free" : row.tier;
-  return { tier, tierLabel: TIER_LABEL[tier] ?? "Free", tierExpiresAt: expired ? null : row.tier_expires_at };
+  return {
+    tier,
+    tierLabel: TIER_LABEL[tier] ?? "Free",
+    tierExpiresAt: expired ? null : row.tier_expires_at,
+  };
 }
 
 async function authUser(body: Record<string, unknown>) {
@@ -209,8 +217,15 @@ async function authUser(body: Record<string, unknown>) {
     .select("id, username, token, tier, tier_expires_at")
     .eq("id", userId)
     .maybeSingle();
-  if (!data || data.token !== userToken) throw new ApiError("Invalid session — please log in again", 401);
-  return data as { id: string; username: string; token: string; tier: string; tier_expires_at: string | null };
+  if (!data || data.token !== userToken)
+    throw new ApiError("Invalid session — please log in again", 401);
+  return data as {
+    id: string;
+    username: string;
+    token: string;
+    tier: string;
+    tier_expires_at: string | null;
+  };
 }
 
 // Looks up which subscription tier governs a room, following the same
@@ -219,7 +234,11 @@ async function authUser(body: Record<string, unknown>) {
 // so pre-existing usage isn't suddenly locked out.
 async function roomTier(roomId: string): Promise<string> {
   const db = await admin();
-  const { data: room } = await db.from("rooms").select("owner_user_id").eq("id", roomId).maybeSingle();
+  const { data: room } = await db
+    .from("rooms")
+    .select("owner_user_id")
+    .eq("id", roomId)
+    .maybeSingle();
   if (!room?.owner_user_id) return "extended";
   const { data: owner } = await db
     .from("app_users")
@@ -235,13 +254,19 @@ export async function handleAction(action: string, body: Record<string, unknown>
 
   switch (action) {
     case "signup": {
-      const username = String(body.username ?? "").trim().toLowerCase();
+      const username = String(body.username ?? "")
+        .trim()
+        .toLowerCase();
       const password = String(body.password ?? "");
       if (!/^[a-z0-9_.-]{3,32}$/.test(username)) {
         throw new ApiError("Username must be 3-32 characters (letters, numbers, _ . -)");
       }
       if (password.length < 6) throw new ApiError("Password must be at least 6 characters");
-      const { data: existing } = await db.from("app_users").select("id").ilike("username", username).maybeSingle();
+      const { data: existing } = await db
+        .from("app_users")
+        .select("id")
+        .ilike("username", username)
+        .maybeSingle();
       if (existing) throw new ApiError("That username is already taken");
       const passwordHash = await hashPassword(password);
       const token = crypto.randomUUID();
@@ -255,7 +280,9 @@ export async function handleAction(action: string, body: Record<string, unknown>
     }
 
     case "userLogin": {
-      const username = String(body.username ?? "").trim().toLowerCase();
+      const username = String(body.username ?? "")
+        .trim()
+        .toLowerCase();
       const password = String(body.password ?? "");
       const { data } = await db
         .from("app_users")
@@ -289,7 +316,9 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const months = Math.max(1, Math.min(24, Number(body.months) || 1));
       if (!["free", "pro", "extended"].includes(tier)) throw new ApiError("Invalid tier");
       const expiresAt =
-        tier === "free" ? null : new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
+        tier === "free"
+          ? null
+          : new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await db
         .from("app_users")
         .update({ tier, tier_expires_at: expiresAt })
@@ -304,7 +333,11 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const name = String(body.name ?? "").trim() || "Shared drive";
       let code = randomCode();
       for (let i = 0; i < 5; i++) {
-        const { data: existing } = await db.from("rooms").select("id").eq("code", code).maybeSingle();
+        const { data: existing } = await db
+          .from("rooms")
+          .select("id")
+          .eq("code", code)
+          .maybeSingle();
         if (!existing) break;
         code = randomCode();
       }
@@ -333,19 +366,25 @@ export async function handleAction(action: string, body: Record<string, unknown>
     // up by room code only (like "register"). Lets the browser show real
     // progress instead of guessing from silence.
     case "installPing": {
-      const code = String(body.code ?? "").trim().toUpperCase();
+      const code = String(body.code ?? "")
+        .trim()
+        .toUpperCase();
       if (!code) throw new ApiError("Missing room code");
       const { data: room } = await db.from("rooms").select("id").eq("code", code).maybeSingle();
       if (!room) throw new ApiError("Room not found", 404);
       const deviceName = safeName(body.deviceName ?? "device", "device name");
       const stage = String(body.stage ?? "");
-      if (!["approved", "installing", "starting"].includes(stage)) throw new ApiError("Invalid stage");
-      const { error } = await db
-        .from("agent_installs")
-        .upsert(
-          { room_id: room.id, device_name: deviceName, stage, updated_at: new Date().toISOString() },
-          { onConflict: "room_id,device_name" },
-        );
+      if (!["approved", "installing", "starting"].includes(stage))
+        throw new ApiError("Invalid stage");
+      const { error } = await db.from("agent_installs").upsert(
+        {
+          room_id: room.id,
+          device_name: deviceName,
+          stage,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "room_id,device_name" },
+      );
       if (error) throw new ApiError(error.message, 500);
       return { ok: true };
     }
@@ -404,7 +443,10 @@ export async function handleAction(action: string, body: Record<string, unknown>
       // isn't already taken, not end up connected as something else without
       // realizing it.
       if (nameTaken && !existing) {
-        throw new ApiError(`Invalid device — "${name}" is already connected from another session`, 409);
+        throw new ApiError(
+          `Invalid device — "${name}" is already connected from another session`,
+          409,
+        );
       }
 
       const query = existing
@@ -431,11 +473,21 @@ export async function handleAction(action: string, body: Record<string, unknown>
             os_info: osInfo,
           });
 
-      const { data: device, error } = await query.select("id, name, agent, admin, mode, os_info").single();
+      const { data: device, error } = await query
+        .select("id, name, agent, admin, mode, os_info")
+        .single();
       if (error) throw new ApiError(error.message, 500);
       return {
         room,
-        device: { id: device.id, name: device.name, token, agent: device.agent, admin: device.admin, mode: device.mode, osInfo: device.os_info },
+        device: {
+          id: device.id,
+          name: device.name,
+          token,
+          agent: device.agent,
+          admin: device.admin,
+          mode: device.mode,
+          osInfo: device.os_info,
+        },
         devices: await listDevices(room.id),
       };
     }
@@ -455,7 +507,14 @@ export async function handleAction(action: string, body: Record<string, unknown>
         .order("created_at");
       return {
         room,
-        me: { id: device.id, name: device.name, agent: device.agent, admin: device.admin, mode: device.mode, osInfo: device.os_info },
+        me: {
+          id: device.id,
+          name: device.name,
+          agent: device.agent,
+          admin: device.admin,
+          mode: device.mode,
+          osInfo: device.os_info,
+        },
         devices: await listDevices(device.room_id),
         inbox: inbox ?? [],
       };
@@ -623,9 +682,6 @@ export async function handleAction(action: string, body: Record<string, unknown>
       return { name: raw };
     }
 
-
-
-
     case "cd": {
       const device = await authDevice(body);
       const path = normalizePath(body.path);
@@ -697,7 +753,8 @@ export async function handleAction(action: string, body: Record<string, unknown>
         .select("id, room_id, from_device")
         .eq("id", id)
         .maybeSingle();
-      if (!transfer || transfer.room_id !== device.room_id) throw new ApiError("Transfer not found", 404);
+      if (!transfer || transfer.room_id !== device.room_id)
+        throw new ApiError("Transfer not found", 404);
       if (transfer.from_device !== device.id) throw new ApiError("Not your transfer", 403);
 
       const buf = Buffer.from(chunk, "base64");
@@ -714,7 +771,8 @@ export async function handleAction(action: string, body: Record<string, unknown>
         .select("id, room_id, to_device, from_device, file_name, storage_path")
         .eq("id", id)
         .maybeSingle();
-      if (!transfer || transfer.room_id !== device.room_id) throw new ApiError("Transfer not found", 404);
+      if (!transfer || transfer.room_id !== device.room_id)
+        throw new ApiError("Transfer not found", 404);
       if (transfer.from_device !== device.id) throw new ApiError("Not your transfer", 403);
 
       const chunks = uploadBuffers.get(id);
@@ -769,7 +827,8 @@ export async function handleAction(action: string, body: Record<string, unknown>
         .select("id, room_id, storage_path, file_name")
         .eq("id", id)
         .maybeSingle();
-      if (!transfer || transfer.room_id !== device.room_id) throw new ApiError("File not found", 404);
+      if (!transfer || transfer.room_id !== device.room_id)
+        throw new ApiError("File not found", 404);
       const { data: signed, error } = await db.storage
         .from(BUCKET)
         .createSignedUrl(transfer.storage_path, 3600, { download: transfer.file_name });
@@ -785,7 +844,8 @@ export async function handleAction(action: string, body: Record<string, unknown>
         .select("id, to_device, room_id")
         .eq("id", id)
         .maybeSingle();
-      if (!transfer || transfer.room_id !== device.room_id) throw new ApiError("Transfer not found", 404);
+      if (!transfer || transfer.room_id !== device.room_id)
+        throw new ApiError("Transfer not found", 404);
       if (transfer.to_device !== device.id) throw new ApiError("Not addressed to you", 403);
       await db
         .from("transfers")
@@ -798,14 +858,18 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const device = await authDevice(body);
       const { data: sent } = await db
         .from("transfers")
-        .select("id, file_name, size_bytes, folder_path, to_name, status, direct, created_at, delivered_at")
+        .select(
+          "id, file_name, size_bytes, folder_path, to_name, status, direct, created_at, delivered_at",
+        )
         .eq("from_device", device.id)
         .neq("status", "uploading")
         .order("created_at", { ascending: false })
         .limit(60);
       const { data: received } = await db
         .from("transfers")
-        .select("id, file_name, size_bytes, folder_path, from_name, status, direct, created_at, delivered_at")
+        .select(
+          "id, file_name, size_bytes, folder_path, from_name, status, direct, created_at, delivered_at",
+        )
         .eq("to_device", device.id)
         .neq("status", "uploading")
         .order("created_at", { ascending: false })
@@ -821,7 +885,10 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const device = await authDevice(body);
       const localUrl = String(body.localUrl ?? "").slice(0, 200) || null;
       const sharedRoot = String(body.sharedRoot ?? "").slice(0, 400) || null;
-      await db.from("devices").update({ local_url: localUrl, shared_root: sharedRoot }).eq("id", device.id);
+      await db
+        .from("devices")
+        .update({ local_url: localUrl, shared_root: sharedRoot })
+        .eq("id", device.id);
       return { localUrl, sharedRoot };
     }
 
@@ -937,7 +1004,6 @@ export async function handleAction(action: string, body: Record<string, unknown>
       const next = [...(Array.isArray(row?.chunks) ? row.chunks : []), chunk];
       await db.from("device_rpc").update({ chunks: next }).eq("id", id);
       return { ok: true };
-
     }
 
     // Poll status + accumulated chunks for a streamed request.
@@ -958,7 +1024,6 @@ export async function handleAction(action: string, body: Record<string, unknown>
         error: call.error,
       };
     }
-
 
     // The shared device picks up requests addressed to it.
     case "rpcPoll": {
@@ -1049,7 +1114,10 @@ export async function handleAction(action: string, body: Record<string, unknown>
             await db
               .from("transfers")
               .delete()
-              .in("id", files.map((f) => f.id));
+              .in(
+                "id",
+                files.map((f) => f.id),
+              );
           await db
             .from("folders")
             .delete()
@@ -1100,8 +1168,7 @@ export async function handleAction(action: string, body: Record<string, unknown>
                 .from("folders")
                 .update({
                   path: to + s.path.slice(from.length),
-                  parent_path:
-                    s.path === from ? dest : to + s.parent_path.slice(from.length),
+                  parent_path: s.path === from ? dest : to + s.parent_path.slice(from.length),
                   ...(s.path === from ? { name } : {}),
                 })
                 .eq("id", s.id);
@@ -1118,15 +1185,13 @@ export async function handleAction(action: string, body: Record<string, unknown>
                 .eq("id", f.id);
             moved++;
           } else {
-            throw new ApiError("Copying whole folders in the room isn't supported yet — copy the files");
+            throw new ApiError(
+              "Copying whole folders in the room isn't supported yet — copy the files",
+            );
           }
         } else {
           const id = String(item.id ?? "");
-          const { data: t } = await db
-            .from("transfers")
-            .select("*")
-            .eq("id", id)
-            .maybeSingle();
+          const { data: t } = await db.from("transfers").select("*").eq("id", id).maybeSingle();
           if (!t || t.room_id !== device.room_id) continue;
           if (mode === "move") {
             await db.from("transfers").update({ folder_path: dest }).eq("id", t.id);
@@ -1173,7 +1238,28 @@ export async function handleAction(action: string, body: Record<string, unknown>
       if (!target) throw new ApiError("Which device?");
       if (!target.online) throw new ApiError(`${target.name} is offline right now`);
       const command = String(body.command ?? "");
-      const allowed = ["shutdown", "restart", "sleep", "lock", "logout", "screenLock", "restartAgent", "stopAgent", "removeAgent", "flushDns", "getDns", "setDns", "resetDns", "cancelShutdown", "alert", "rename", "cursorInfo", "cursorMove", "cursorClick", "cursorScroll"];
+      const allowed = [
+        "shutdown",
+        "restart",
+        "sleep",
+        "lock",
+        "logout",
+        "screenLock",
+        "restartAgent",
+        "stopAgent",
+        "removeAgent",
+        "flushDns",
+        "getDns",
+        "setDns",
+        "resetDns",
+        "cancelShutdown",
+        "alert",
+        "rename",
+        "cursorInfo",
+        "cursorMove",
+        "cursorClick",
+        "cursorScroll",
+      ];
       if (!allowed.includes(command)) throw new ApiError("Unknown control command");
       const { data: call, error } = await db
         .from("device_rpc")
@@ -1232,7 +1318,8 @@ export async function handleAction(action: string, body: Record<string, unknown>
         throw new ApiError("Unsupported schedule action");
       }
       const fireAt = String(body.fireAt ?? "");
-      if (!fireAt || Number.isNaN(Date.parse(fireAt))) throw new ApiError("Missing or invalid fireAt");
+      if (!fireAt || Number.isNaN(Date.parse(fireAt)))
+        throw new ApiError("Missing or invalid fireAt");
 
       // Only one active schedule per device at a time — replace any
       // existing pending one instead of stacking duplicates.
@@ -1288,4 +1375,3 @@ export async function handleAction(action: string, body: Record<string, unknown>
       throw new ApiError(`Unknown action: ${action}`, 404);
   }
 }
-

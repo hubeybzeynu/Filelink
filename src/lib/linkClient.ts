@@ -72,7 +72,7 @@ export function saveUserSession(user: UserSession | null) {
   else window.localStorage.removeItem(USER_KEY);
 }
 
-export async function api<T = Record<string, any>>(
+export async function api<T = Record<string, unknown>>(
   action: string,
   payload: Record<string, unknown> = {},
   session?: Session | null,
@@ -112,7 +112,12 @@ export async function setTier(
   tier: "free" | "pro" | "extended",
   months: number,
 ): Promise<UserSession> {
-  return api<UserSession>("setTier", { userId: user.userId, userToken: user.userToken, tier, months });
+  return api<UserSession>("setTier", {
+    userId: user.userId,
+    userToken: user.userToken,
+    tier,
+    months,
+  });
 }
 
 export function humanSize(n: number) {
@@ -268,7 +273,11 @@ export async function uploadFile(
       const slice = buf.subarray(offset, offset + CHUNK);
       let binary = "";
       for (let i = 0; i < slice.length; i++) binary += String.fromCharCode(slice[i]);
-      await api("uploadChunk", { transferId: init.transferId, chunk: btoa(binary), first }, session);
+      await api(
+        "uploadChunk",
+        { transferId: init.transferId, chunk: btoa(binary), first },
+        session,
+      );
       offset += slice.length;
       first = false;
       job.progress(offset, buf.length || 1);
@@ -333,8 +342,6 @@ export async function remoteUploadFile(
   }
 }
 
-
-
 export async function downloadTransfer(session: Session, transferId: string) {
   const { url, fileName } = await api<{ url: string; fileName: string }>(
     "download",
@@ -376,18 +383,33 @@ export async function downloadTransfer(session: Session, transferId: string) {
   }
 }
 
-
 /* ---- live browsing of another PC (streamed on demand, no cloud copy) ---- */
 
 export type RemoteMode = { name: string; path: string };
 
-export async function remoteCall<T = any>(
+export async function remoteCall<T = unknown>(
   session: Session,
   device: string,
-  method: "info" | "list" | "search" | "read" | "write" | "mkdir" | "disk" | "bundle" | "exit" | "tree" | "sysinfo" | "tasklist" | "control" | "screenshot" | "clipboardHistory" | "clipboardWrite" | "clipboardRead",
+  method:
+    | "info"
+    | "list"
+    | "search"
+    | "read"
+    | "write"
+    | "mkdir"
+    | "disk"
+    | "bundle"
+    | "exit"
+    | "tree"
+    | "sysinfo"
+    | "tasklist"
+    | "control"
+    | "screenshot"
+    | "clipboardHistory"
+    | "clipboardWrite"
+    | "clipboardRead",
   params: Record<string, unknown> = {},
 ): Promise<T> {
-
   const r = await api<{ result: T }>("rpc", { target: device, method, params }, session);
   return r.result;
 }
@@ -415,7 +437,6 @@ export async function remoteExecStatus(
 }> {
   return api("rpcStatus", { callId }, session);
 }
-
 
 export async function remoteDownload(
   session: Session,
@@ -513,7 +534,6 @@ export function renameItem(session: Session, item: PickItem, name: string) {
   return api<{ path?: string; name?: string }>("rename", { item, name }, session);
 }
 
-
 export function copyMoveItems(
   session: Session,
   items: PickItem[],
@@ -575,8 +595,17 @@ export function deleteDevice(session: Session, targetId: string) {
   return api<{ ok: boolean; devices: DeviceInfo[] }>("deleteDevice", { targetId }, session);
 }
 
-export function sendControl(session: Session, target: string, command: string, extra?: Record<string, unknown>) {
-  return api<{ ok: boolean; result?: unknown }>("control", { target, command, ...(extra ?? {}) }, session);
+export function sendControl(
+  session: Session,
+  target: string,
+  command: string,
+  extra?: Record<string, unknown>,
+) {
+  return api<{ ok: boolean; result?: unknown }>(
+    "control",
+    { target, command, ...(extra ?? {}) },
+    session,
+  );
 }
 
 /* ---- power schedules (cloud-persisted, survive refresh/close) ---- */
@@ -597,7 +626,11 @@ export function schedulePower(
   powerAction: "shutdown" | "restart",
   fireAt: string,
 ) {
-  return api<{ schedule: PowerSchedule }>("schedulePower", { target, powerAction, fireAt }, session);
+  return api<{ schedule: PowerSchedule }>(
+    "schedulePower",
+    { target, powerAction, fireAt },
+    session,
+  );
 }
 
 export function listSchedules(session: Session) {
@@ -610,12 +643,14 @@ export function cancelSchedule(session: Session, scheduleId: string) {
 
 /* ---- live install progress (reported by the .cmd script itself) ---- */
 
-export type InstallStatus = { stage: "approved" | "installing" | "starting"; updated_at: string } | null;
+export type InstallStatus = {
+  stage: "approved" | "installing" | "starting";
+  updated_at: string;
+} | null;
 
 export function getInstallStatus(session: Session, deviceName: string) {
   return api<{ install: InstallStatus }>("installStatus", { deviceName }, session);
 }
-
 
 export function remoteSysInfo(session: Session, device: string) {
   return remoteCall<{
@@ -631,10 +666,7 @@ export function remoteSysInfo(session: Session, device: string) {
   }>(session, device, "sysinfo");
 }
 
-export function remoteTasklist(
-  session: Session,
-  device: string,
-) {
+export function remoteTasklist(session: Session, device: string) {
   return remoteCall<{
     processes: {
       pid: string;
@@ -649,4 +681,3 @@ export function remoteTasklist(
     }[];
   }>(session, device, "tasklist");
 }
-

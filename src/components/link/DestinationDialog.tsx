@@ -89,7 +89,6 @@ export function DestinationDialog({
   const clean = extra.replace(/\\/g, "/").split("/").filter(Boolean).join("/");
   const finalPath = clean ? `${path === "/" ? "" : path}/${clean}` : path;
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -200,7 +199,6 @@ export function DestinationDialog({
           </span>
           <Button onClick={() => onConfirm({ device, path: finalPath })}>{confirmLabel}</Button>
         </DialogFooter>
-
       </DialogContent>
     </Dialog>
   );

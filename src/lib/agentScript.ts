@@ -87,7 +87,7 @@ export function buildAgentInstaller(opts: {
     "  echo Set WshShell = Nothing",
     ')>"%ROAMINGDIR%\\run_silent.vbs"',
     "",
-    'powershell -NoProfile -Command "$wsh = New-Object -ComObject WScript.Shell; $startup = [Environment]::GetFolderPath(\'Startup\'); $sc = $wsh.CreateShortcut(\\"$startup\\FileLinkAgent.lnk\\"); $sc.TargetPath = \'%APPDATA%\\FileLinkAgent\\run_silent.vbs\'; $sc.WorkingDirectory = \'%USERPROFILE%\'; $sc.Save()"',
+    "powershell -NoProfile -Command \"$wsh = New-Object -ComObject WScript.Shell; $startup = [Environment]::GetFolderPath('Startup'); $sc = $wsh.CreateShortcut(\\\"$startup\\FileLinkAgent.lnk\\\"); $sc.TargetPath = '%APPDATA%\\FileLinkAgent\\run_silent.vbs'; $sc.WorkingDirectory = '%USERPROFILE%'; $sc.Save()\"",
     "",
     ping("starting"),
     "",
@@ -103,7 +103,10 @@ export function buildAgentInstaller(opts: {
 }
 
 export function agentInstallerFileName(roomCode: string, deviceName?: string, elevate = true) {
-  const dev = (deviceName || "pc").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const dev = (deviceName || "pc")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   const suffix = elevate ? "-admin" : "-noadmin";
   return `filelink-agent-${roomCode.toLowerCase()}-${dev || "pc"}${suffix}.cmd`;
 }

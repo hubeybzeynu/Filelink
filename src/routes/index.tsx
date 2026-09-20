@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AITab } from "@/components/link/AITab";
 import {
   Crown,
   Download,
@@ -33,6 +34,7 @@ import {
   RefreshCw,
   SendHorizontal,
   Settings,
+  Sparkles,
   Terminal as TerminalIcon,
 } from "lucide-react";
 
@@ -74,7 +76,8 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type MainTab = "files" | "tasks" | "pcinfo" | "control" | "terminal" | "transfers" | "devices";
+type MainTab =
+  "files" | "ai" | "tasks" | "pcinfo" | "control" | "terminal" | "transfers" | "devices";
 
 function loadSeenDeviceIds(roomCode: string): Set<string> {
   try {
@@ -207,12 +210,15 @@ function Index() {
     try {
       const r = await updateDevice(session, newDevice.id, rename.trim() || newDevice.name);
       setDevices(r.devices);
-    } catch {}
+    } catch {
+      // Silent failure - device update failed
+    }
     setNewDevice(null);
   }
 
   const panel = (
     <>
+      {tab === "ai" && <AITab session={session} devices={devices} />}
       {tab === "files" && (
         <FileExplorerTab
           session={session}
@@ -225,9 +231,16 @@ function Index() {
       {tab === "tasks" && <TasksTab session={session} devices={devices} />}
       {tab === "pcinfo" && <PcInfoTab session={session} devices={devices} />}
       {tab === "control" && <ControlTab session={session} devices={devices} />}
-      {tab === "devices" && <DevicesTab session={session} devices={devices} onChanged={setDevices} />}
+      {tab === "devices" && (
+        <DevicesTab session={session} devices={devices} onChanged={setDevices} />
+      )}
       {tab === "transfers" && (
-        <TransfersPanel session={session} sent={sent} received={received} defaultView={transfersView} />
+        <TransfersPanel
+          session={session}
+          sent={sent}
+          received={received}
+          defaultView={transfersView}
+        />
       )}
       {tab === "terminal" && terminalPanel}
     </>
@@ -265,7 +278,9 @@ function Index() {
               {key === "transfers" && waiting + queued > 0 && (
                 <span
                   className={`ml-auto rounded-full px-2 py-0.5 font-mono text-[10px] ${
-                    tab === key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/20 text-primary"
+                    tab === key
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-primary/20 text-primary"
                   }`}
                 >
                   {waiting + queued}
@@ -430,7 +445,9 @@ function Index() {
               <CliCard code={session.roomCode} />
             </div>
           </div>
-          <div className="no-scrollbar hidden w-[340px] shrink-0 md:overflow-y-auto xl:block">{sidePanel}</div>
+          <div className="no-scrollbar hidden w-[340px] shrink-0 md:overflow-y-auto xl:block">
+            {sidePanel}
+          </div>
         </main>
       </div>
 
@@ -444,7 +461,6 @@ function Index() {
           <Plus className="size-6" />
         </button>
       )}
-
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
@@ -544,6 +560,7 @@ function Index() {
 
 const NAV_ITEMS = [
   { key: "files", label: "File Explorer", short: "Files", Icon: FolderOpen },
+  { key: "ai", label: "AI Assistant", short: "AI", Icon: Sparkles },
   { key: "tasks", label: "Tasks", short: "Tasks", Icon: Inbox },
   { key: "pcinfo", label: "PC Setup", short: "PC", Icon: Settings },
   { key: "control", label: "Control Center", short: "Ctrl", Icon: Power },
@@ -605,7 +622,6 @@ function Splash() {
     </div>
   );
 }
-
 
 function AddDeviceDialog({
   open,
@@ -682,10 +698,12 @@ function CliCard({ code }: { code: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return (
     <section className="rounded-xl border border-border bg-card p-5">
-      <h2 className="font-display text-lg font-semibold text-foreground">Use it from the command prompt</h2>
+      <h2 className="font-display text-lg font-semibold text-foreground">
+        Use it from the command prompt
+      </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Run these two lines on any PC (Node.js 18+). It stays connected, and files sent to it while it
-        was offline download automatically the moment it reconnects.
+        Run these two lines on any PC (Node.js 18+). It stays connected, and files sent to it while
+        it was offline download automatically the moment it reconnects.
       </p>
       <pre className="mt-3 overflow-x-auto rounded border border-border bg-background p-4 font-mono text-[13px] text-primary">
         {`curl -O ${origin}/filelink.mjs
@@ -838,4 +856,3 @@ function Connect({ onConnected, user }: { onConnected: (s: Session) => void; use
     </main>
   );
 }
-

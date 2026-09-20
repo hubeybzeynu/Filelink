@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, Loader2, Monitor, X, Zap } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Loader2,
+  Monitor,
+  X,
+  Zap,
+} from "lucide-react";
 import "./PowerModal.css";
 import type { PowerSchedule, Session } from "@/lib/linkClient";
 
@@ -175,7 +185,11 @@ export function PowerModal({
         await onExecuteNow(name);
         setResults((r) => r.map((x) => (x.name === name ? { ...x, state: "ok" } : x)));
       } catch (e) {
-        setResults((r) => r.map((x) => (x.name === name ? { ...x, state: "error", note: (e as Error).message } : x)));
+        setResults((r) =>
+          r.map((x) =>
+            x.name === name ? { ...x, state: "error", note: (e as Error).message } : x,
+          ),
+        );
       }
     }
     setBusy(false);
@@ -210,7 +224,11 @@ export function PowerModal({
           <div className="flex items-center gap-2.5">
             {stage !== "options" && stage !== "progress" && stage !== "countdown" && (
               <button
-                onClick={() => setStage(stage === "warning" && pendingMode === "schedule" ? "schedule" : "options")}
+                onClick={() =>
+                  setStage(
+                    stage === "warning" && pendingMode === "schedule" ? "schedule" : "options",
+                  )
+                }
                 className="ios-btn grid size-8 place-items-center rounded-full bg-cardhover text-muted-foreground"
                 aria-label="Back"
               >
@@ -250,7 +268,9 @@ export function PowerModal({
                   <Zap className="size-5" />
                 </div>
                 <div>
-                  <span className="block text-sm font-bold text-foreground">Execute immediately</span>
+                  <span className="block text-sm font-bold text-foreground">
+                    Execute immediately
+                  </span>
                   <span className="text-xs text-muted-foreground">Runs right away, no delay</span>
                 </div>
               </div>
@@ -270,7 +290,9 @@ export function PowerModal({
                 </div>
                 <div>
                   <span className="block text-sm font-bold text-foreground">Schedule timer</span>
-                  <span className="text-xs text-muted-foreground">Set a specific time for execution</span>
+                  <span className="text-xs text-muted-foreground">
+                    Set a specific time for execution
+                  </span>
                 </div>
               </div>
               <ChevronRight className="size-5 shrink-0 text-primary" />
@@ -301,8 +323,12 @@ export function PowerModal({
 
             <div className="flex items-center justify-between border-t border-border/50 pt-4">
               <div className="flex flex-col">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Time left</span>
-                <span className="font-mono text-sm font-bold text-primary">{pickerTimeLeftLabel}</span>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Time left
+                </span>
+                <span className="font-mono text-sm font-bold text-primary">
+                  {pickerTimeLeftLabel}
+                </span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -329,14 +355,19 @@ export function PowerModal({
               <p className="text-xs font-medium leading-relaxed text-warning">
                 <strong>Warning:</strong> {action.label} will be sent to {devices.length} device
                 {devices.length !== 1 ? "s" : ""}
-                {pendingMode === "schedule" ? ` at ${targetDate.toLocaleTimeString()}` : " immediately"}. Any unsaved
-                work on those PCs may be lost, and background transfers will stop.
+                {pendingMode === "schedule"
+                  ? ` at ${targetDate.toLocaleTimeString()}`
+                  : " immediately"}
+                . Any unsaved work on those PCs may be lost, and background transfers will stop.
               </p>
             </div>
 
             <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
               {devices.map((d) => (
-                <div key={d} className="flex items-center gap-3 rounded-xl border border-border/60 bg-cardhover/60 px-3 py-2">
+                <div
+                  key={d}
+                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-cardhover/60 px-3 py-2"
+                >
                   <Monitor className="size-4 shrink-0 text-primary" />
                   <span className="truncate text-xs text-foreground">{d}</span>
                 </div>
@@ -363,7 +394,9 @@ export function PowerModal({
 
         {stage === "countdown" && (
           <div className="pm-fade-in flex flex-col items-center gap-4 py-2">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{action.label} in</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              {action.label} in
+            </p>
             {secondsLeft > 0 ? (
               <div
                 className={`font-mono text-5xl font-bold tabular-nums transition-colors duration-300 ${
@@ -376,8 +409,8 @@ export function PowerModal({
               <div className="font-mono text-2xl font-bold text-warning">{verb} now…</div>
             )}
             <p className="text-center text-xs text-muted-foreground">
-              Scheduled for {new Date(fireAt).toLocaleTimeString()} — this runs on the PC itself, so it keeps
-              going even if you close this tab.
+              Scheduled for {new Date(fireAt).toLocaleTimeString()} — this runs on the PC itself, so
+              it keeps going even if you close this tab.
             </p>
             {secondsLeft > 0 && (
               <button
@@ -409,18 +442,27 @@ export function PowerModal({
             </div>
             <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
               {results.map((r) => (
-                <div key={r.name} className="flex items-center gap-3 rounded-xl border border-border/60 bg-cardhover/60 px-3 py-2.5">
+                <div
+                  key={r.name}
+                  className="flex items-center gap-3 rounded-xl border border-border/60 bg-cardhover/60 px-3 py-2.5"
+                >
                   <span className="grid size-6 shrink-0 place-items-center">
-                    {r.state === "running" && <Loader2 className="size-4 animate-spin text-primary" />}
+                    {r.state === "running" && (
+                      <Loader2 className="size-4 animate-spin text-primary" />
+                    )}
                     {r.state === "ok" && <Check className="size-4 text-primary" />}
                     {r.state === "error" && <AlertTriangle className="size-4 text-destructive" />}
-                    {r.state === "waiting" && <span className="size-2 rounded-full bg-muted-foreground/40" />}
+                    {r.state === "waiting" && (
+                      <span className="size-2 rounded-full bg-muted-foreground/40" />
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-xs font-semibold text-foreground">
                       {verb} {r.name}
                     </div>
-                    {r.note && <div className="truncate text-[11px] text-destructive">{r.note}</div>}
+                    {r.note && (
+                      <div className="truncate text-[11px] text-destructive">{r.note}</div>
+                    )}
                   </div>
                 </div>
               ))}

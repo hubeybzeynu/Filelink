@@ -1,0 +1,2386 @@
+# FileLink AI — Complete Implementation Specification
+
+## 1. PROJECT CONTEXT
+
+This is the existing FileLink project.
+
+The project already contains:
+
+* React + TypeScript
+* TanStack Start
+* Supabase
+* `src/lib/linkClient.ts`
+* `src/lib/link.server.ts`
+* `public/filelink.mjs`
+* existing device authentication
+* device online/offline detection
+* `device_rpc`
+* `rpcPoll`
+* `rpcRespond`
+* `rpcChunk`
+* `rpcStatus`
+* streamed remote shell execution
+* remote file listing
+* remote file search
+* remote file read
+* remote file write
+* remote mkdir
+* remote system information
+* remote process/task information
+* remote screenshot
+* clipboard
+* device controls
+* file transfers
+* offline file delivery
+
+DO NOT replace the existing FileLink architecture.
+
+Extend it.
+
+The new AI system must use the existing FileLink device/RPC infrastructure rather than creating a second unrelated remote-control system.
+
+---
+
+# 2. MAIN FEATURE
+
+Add a new navigation item:
+
+AI
+
+The AI tab is an AI-powered computer-management assistant.
+
+The user can select:
+
+1. One device
+2. Multiple devices
+3. ALL devices
+
+Then the user can type natural-language instructions.
+
+Examples:
+
+* "Check why my Node application is not starting."
+* "Look at the project folder and tell me what is wrong."
+* "Find the largest files."
+* "Check the CPU and RAM usage."
+* "Open package.json and tell me why the build is failing."
+* "Run the filelink.mjs diagnostic command."
+* "Create a PowerPoint about the project."
+* "Create a folder called School Work."
+* "Create report.docx in Documents."
+* "Edit this file."
+* "Replace the existing presentation."
+* "Send the generated PowerPoint to Desktop\School."
+* "Install the required package."
+* "Fix the error."
+* "Do this on all my PCs."
+* "Check every PC and tell me which ones have the problem."
+
+The AI should understand normal language instead of requiring FileLink command syntax.
+
+---
+
+# 3. IMPORTANT DESIGN PRINCIPLE
+
+The AI must NOT directly execute arbitrary commands.
+
+Architecture:
+
+User
+↓
+AI conversation
+↓
+AI planner
+↓
+Tool/action plan
+↓
+FileLink safety/permission layer
+↓
+device_rpc
+↓
+filelink.mjs
+↓
+Target PC
+↓
+Live output
+↓
+AI analyzes result
+↓
+Next action
+↓
+Final explanation
+
+The AI should decide WHAT needs to happen.
+
+FileLink decides HOW it is safely executed.
+
+---
+
+# 4. DEVICE SELECTOR
+
+At the top of the AI tab create a professional device selector.
+
+Example:
+
+AI Assistant
+
+Target devices:
+
+[✓ My Laptop]
+[ ] Office PC
+[ ] School PC
+[ ] All devices
+
+Or:
+
+Target:
+┌─────────────────────────────┐
+│ ● My Laptop                 │
+│ ○ Office PC                 │
+│ ○ School PC                 │
+│ ✓ All devices               │
+└─────────────────────────────┘
+
+Show:
+
+* device name
+* online/offline
+* agent/background status
+* OS
+* last seen
+* admin availability
+
+Example:
+
+● Hubeyb-PC
+Online
+Windows 10
+Agent connected
+
+○ Office-PC
+Offline
+Last seen 8 minutes ago
+
+ALL DEVICES should be a special selection.
+
+If ALL is selected, do not execute everything simultaneously by default.
+
+Use:
+
+PC 1
+↓
+inspect
+↓
+execute/fix
+↓
+verify
+↓
+PC 2
+↓
+inspect
+↓
+execute/fix
+↓
+verify
+
+Show this visually.
+
+---
+
+# 5. AI CHAT
+
+Create a modern AI interface.
+
+Header:
+
+AI Assistant
+"Control, inspect and manage your connected PCs."
+
+Conversation:
+
+User:
+"Check why the website won't build."
+
+AI:
+"Inspecting the selected PC..."
+
+Then show an execution card.
+
+Example:
+
+┌─────────────────────────────────────────┐
+│ ● Inspecting Hubeyb-PC                  │
+│                                         │
+│ Reading project files...                │
+│ Checking package.json...                │
+│ Checking TypeScript configuration...    │
+│ Checking build output...                │
+│                                         │
+│ 3 actions running                       │
+│                               ˅         │
+└─────────────────────────────────────────┘
+
+The arrow expands the card.
+
+---
+
+# 6. LIVE EXECUTION CARDS
+
+Every AI action must have a live expandable card.
+
+Collapsed:
+
+● Running
+"Checking package.json"
+Hubeyb-PC
+3.2s
+
+[˅]
+
+Expanded:
+
+Action
+Inspect package.json
+
+Device
+Hubeyb-PC
+
+Command
+node filelink.mjs ...
+
+Shell
+PowerShell
+
+Output
+
+> npm run build
+> vite build
+
+...
+
+Status
+✓ Completed
+
+AI interpretation
+"The build failed because..."
+
+The user must be able to click the arrow.
+
+---
+
+# 7. OUTPUT TYPES
+
+Support:
+
+* command
+* stdout
+* stderr
+* file read
+* file write
+* directory creation
+* file transfer
+* screenshot
+* system information
+* process information
+* network information
+* package inspection
+* build result
+* AI analysis
+* confirmation request
+* error
+* retry
+* success
+
+Use different visual states:
+
+pending
+running
+success
+warning
+error
+offline
+waiting
+needs-confirmation
+
+---
+
+# 8. LIVE STREAMING
+
+Use the existing streamed RPC system.
+
+The existing project already has:
+
+rpcExec
+rpcChunk
+rpcStatus
+
+Do not create a second shell streaming system.
+
+When the AI launches a command:
+
+1. Create action
+2. Start RPC
+3. Poll status
+4. Stream chunks into the UI
+5. Display stdout/stderr live
+6. Finish action
+7. Send result back to AI
+8. Let AI decide the next step
+
+Do NOT wait until the whole task finishes before showing output.
+
+---
+
+# 9. AI MUST BE ABLE TO INSPECT THE PC
+
+Create AI tools around the existing RPC methods.
+
+Minimum tools:
+
+inspect_device
+get_system_info
+get_processes
+list_directory
+search_files
+read_file
+write_file
+create_directory
+run_command
+take_screenshot
+read_clipboard
+write_clipboard
+get_disk_usage
+get_device_status
+get_network_information
+
+The AI should decide which inspection is necessary.
+
+For example:
+
+User:
+"Why is my app slow?"
+
+AI should inspect:
+
+1. CPU
+2. RAM
+3. processes
+4. disk
+5. application files/logs if needed
+
+It should NOT blindly run every available command.
+
+---
+
+# 10. FILE.MJS / CLI INSPECTION
+
+The existing `public/filelink.mjs` is important.
+
+The AI should be able to request operations through the FileLink agent.
+
+The agent already supports:
+
+* sysinfo
+* tasklist
+* list
+* search
+* read
+* write
+* mkdir
+* disk
+* screenshot
+* clipboard
+* control
+* exec
+
+Keep this model.
+
+If an AI task requires information from the PC:
+
+AI decides:
+"I need to inspect package.json."
+
+FileLink sends the request to the target device.
+
+The agent executes the appropriate operation.
+
+Result returns to the AI.
+
+The AI analyzes it.
+
+Then the AI can decide the next operation.
+
+---
+
+# 11. ERROR UNDERSTANDING
+
+This is one of the most important features.
+
+If a command fails:
+
+Example:
+
+npm run build
+
+Output:
+
+Module not found:
+Can't resolve './components/Test'
+
+The UI should show:
+
+✕ Command failed
+
+Error detected
+
+Module not found:
+./components/Test
+
+Then:
+
+AI analysis
+
+"The build failed because the imported component does not exist."
+
+Then the AI should determine whether it can safely fix it.
+
+Possible flow:
+
+1. Read relevant file
+2. Inspect directory
+3. Find similarly named component
+4. Determine correct import
+5. Propose fix
+6. Ask confirmation if needed
+7. Edit file
+8. Re-run build
+9. Verify
+10. Report success
+
+The AI should not merely say "there is an error."
+
+It should diagnose and attempt a repair when the user requested a fix.
+
+---
+
+# 12. ERROR RECOVERY LOOP
+
+Implement:
+
+inspect
+→ execute
+→ observe
+→ analyze
+→ fix
+→ verify
+
+Example:
+
+Command failed
+↓
+AI reads error
+↓
+AI identifies likely cause
+↓
+AI inspects relevant files
+↓
+AI creates correction
+↓
+confirmation if required
+↓
+write
+↓
+rerun command
+↓
+verify
+↓
+success
+
+Maximum retry count should exist.
+
+Example:
+
+max 3 automatic repair attempts.
+
+Never create an infinite repair loop.
+
+---
+
+# 13. FILE EDITING
+
+When AI edits a file, DO NOT only show:
+
+"File updated."
+
+Show a visual file-edit card.
+
+Example:
+
+┌─────────────────────────────────────┐
+│ Editing package.json                │
+│ Hubeyb-PC                           │
+│                                     │
+│ package.json                        │
+│                                     │
+│ - "vite": "8.1.0"                   │
+│ + "vite": "8.2.0"                   │
+│                                     │
+│ ✓ File saved                        │
+│                                     │
+│ [View full diff ˅]                  │
+└─────────────────────────────────────┘
+
+Use a diff viewer.
+
+Show:
+
+* filename
+* path
+* changed lines
+* before
+* after
+* reason
+* device
+* status
+
+---
+
+# 14. FILE CREATION
+
+When creating a file:
+
+Example:
+
+Creating:
+C:\Users\Hubeyb\Desktop\School\Presentation.pptx
+
+Show:
+
+AI is creating file
+↓
+Generating content
+↓
+Creating presentation
+↓
+Writing file
+↓
+Verifying file
+↓
+✓ Created
+
+Allow the user to expand details.
+
+---
+
+# 15. FILE DELETION
+
+Deletion must be much more protected.
+
+Never permanently delete a file silently.
+
+If AI determines deletion is necessary:
+
+"Delete C:...\old.pptx?"
+
+[Yes]
+[No]
+
+Prefer a safe backup/trash/versioned approach where possible.
+
+The existing FileLink principle that room/cloud files should not be silently destroyed must remain intact.
+
+---
+
+# 16. OVERWRITE CONFIRMATION
+
+If the destination file already exists:
+
+"Presentation.pptx already exists."
+
+Ask:
+
+Replace it?
+
+[Yes, replace]
+[No, keep existing]
+[Save as new file]
+
+Do not silently overwrite.
+
+---
+
+# 17. ADMINISTRATOR CONFIRMATION
+
+If an operation requires administrator permission:
+
+"Administrator permission is required."
+
+Explain:
+
+Why:
+"Installing this package modifies a protected system location."
+
+Then:
+
+[Run as administrator]
+[Cancel]
+
+Never pretend that administrator access exists if it does not.
+
+The agent must report the actual permission state.
+
+---
+
+# 18. DANGEROUS COMMAND CONFIRMATION
+
+Commands involving:
+
+* system shutdown
+* restart
+* service changes
+* registry changes
+* software installation
+* firewall changes
+* credential/security changes
+* deleting files
+* formatting disks
+* destructive scripts
+* administrator operations
+
+must have explicit confirmation.
+
+Example:
+
+This action will restart Hubeyb-PC.
+
+[Yes, restart]
+[No]
+
+---
+
+# 19. OFFLINE DEVICES
+
+This is critical.
+
+If a selected device is offline:
+
+Do not lose the user's request.
+
+Example:
+
+User:
+"Create presentation.pptx on Office PC."
+
+Office PC:
+OFFLINE
+
+AI should say:
+
+"Office PC is currently offline."
+
+Then offer:
+
+[Queue for Office PC]
+[Create in FileLink Cloud]
+[Cancel]
+
+If the user says to do it in the cloud:
+
+Create a cloud/staging task.
+
+Example:
+
+Cloud task:
+
+Presentation.pptx
+Status: Waiting for Office PC
+
+When Office PC comes online:
+
+TOP NOTIFICATION:
+
+"Office PC is back online."
+
+"1 queued AI request is ready."
+
+[Review]
+[Run now]
+
+If the user has already authorized the operation and the operation is safe, it can execute automatically.
+
+For risky operations, ask again if necessary.
+
+---
+
+# 20. OFFLINE TASK DATABASE
+
+Create persistent database records.
+
+Suggested table:
+
+ai_tasks
+
+Fields:
+
+id
+room_id
+user_id/device_id
+created_at
+updated_at
+title
+user_prompt
+target_devices
+status
+priority
+requires_confirmation
+confirmation_state
+cloud_workspace_path
+plan_json
+context_json
+result_json
+error
+completed_at
+
+Statuses:
+
+queued
+waiting_offline
+planning
+running
+waiting_confirmation
+failed
+completed
+cancelled
+
+This must survive:
+
+* browser refresh
+* closing the browser
+* reconnecting
+* device going offline
+* device coming online
+
+---
+
+# 21. TOP NOTIFICATION SYSTEM
+
+When queued tasks become executable:
+
+show a top notification.
+
+Example:
+
+┌────────────────────────────────────────────┐
+│ ✓ Office PC is online                      │
+│ 2 AI requests are waiting                  │
+│                                            │
+│ [Review requests]                          │
+└────────────────────────────────────────────┘
+
+For success:
+
+✓ AI task completed on Office PC
+
+For failure:
+
+! AI task failed on Office PC
+
+For confirmation:
+
+⚠ AI task needs your approval
+
+---
+
+# 22. CLOUD WORKSPACE
+
+Create an AI workspace for offline jobs.
+
+Example:
+
+/AI Workspace/
+Office PC/
+Pending/
+Completed/
+Failed/
+Artifacts/
+
+If the user says:
+
+"Create the PowerPoint in the cloud until my PC comes online."
+
+The AI can generate the artifact in the cloud workspace.
+
+When the PC comes online:
+
+transfer artifact
+→ selected destination
+→ verify
+→ mark completed
+
+---
+
+# 23. POWERPOINT / DOCUMENT GENERATION
+
+The AI must support generated files.
+
+Examples:
+
+* PowerPoint
+* Word document
+* PDF
+* Excel spreadsheet
+* text file
+* HTML
+* images
+* project files
+* ZIP archives
+
+For a PowerPoint:
+
+User:
+"Create a presentation about FileLink with 10 slides."
+
+AI should:
+
+1. Plan presentation
+2. Generate slide structure
+3. Create presentation
+4. Validate presentation
+5. Store artifact
+6. Ask destination
+7. Transfer to selected PC
+8. Verify file exists
+
+Destination UI:
+
+Destination:
+
+[Desktop]
+[Documents]
+[Downloads]
+[Custom path]
+
+Custom:
+
+C:\Users\Hubeyb\Desktop\School
+
+Then:
+
+[Send to PC]
+
+---
+
+# 24. PRESENTATION PREVIEW
+
+For generated presentations, show:
+
+Presentation.pptx
+
+10 slides
+2.4 MB
+
+[Preview]
+[Send to PC]
+[Change destination]
+
+If possible, render slide thumbnails in the AI UI.
+
+---
+
+# 25. MULTIPLE DEVICES
+
+If ALL DEVICES is selected:
+
+Do not dump all output into one stream.
+
+Create a device execution timeline.
+
+Example:
+
+AI Task
+"Check Node installations."
+
+1. Hubeyb-PC
+   ✓ Completed
+
+2. Office-PC
+   ● Running
+
+3. School-PC
+   ○ Offline — waiting
+
+Click a device to expand its output.
+
+---
+
+# 26. MULTI-PC DIFFERENCES
+
+AI should compare results.
+
+Example:
+
+Hubeyb-PC
+Node 24
+✓
+
+Office-PC
+Node 20
+!
+
+School-PC
+Node unavailable
+!
+
+Then final:
+
+"2 devices have Node installed. School-PC does not."
+
+Do not assume all devices have the same OS, paths, permissions or installed programs.
+
+---
+
+# 27. DEVICE-SPECIFIC PATHS
+
+Never blindly copy:
+
+C:\Users\Hubeyb
+
+from one PC to another.
+
+The AI should inspect:
+
+username
+home directory
+OS
+drives
+environment
+
+Then construct the correct path for that device.
+
+---
+
+# 28. USER CONFIRMATION ENGINE
+
+The AI needs a structured confirmation system.
+
+Whenever an action needs confirmation:
+
+show:
+
+Action
+Replace existing PowerPoint
+
+Device
+Hubeyb-PC
+
+File
+C:\Users\Hubeyb\Desktop\School\Presentation.pptx
+
+Reason
+A file with the same name already exists.
+
+Buttons:
+
+[Yes]
+[No]
+
+For more dangerous actions:
+
+[Yes, run]
+[No, cancel]
+
+Never make the AI ask confirmations in plain text only.
+
+Make confirmations interactive UI actions.
+
+---
+
+# 29. AI ACTION PLAN
+
+Before complex execution, generate a structured plan.
+
+Example:
+
+Plan
+
+1. Inspect device status
+2. Read package.json
+3. Inspect source directory
+4. Run build
+5. Analyze error
+6. Apply fix
+7. Run build again
+8. Verify
+
+Show:
+
+[Plan ˅]
+
+The user can expand it.
+
+---
+
+# 30. AI SHOULD NOT OVER-ASK
+
+Do not ask unnecessary questions.
+
+If the user says:
+
+"Check my PC."
+
+AI should inspect the PC.
+
+It should not ask:
+
+"What do you mean?"
+
+unless there is genuinely no useful interpretation.
+
+If the user says:
+
+"Fix the build."
+
+AI should inspect the build first.
+
+---
+
+# 31. NATURAL LANGUAGE UNDERSTANDING
+
+Support phrases such as:
+
+"look at"
+"check"
+"find"
+"inspect"
+"tell me"
+"run"
+"execute"
+"create"
+"make"
+"build"
+"edit"
+"change"
+"replace"
+"delete"
+"remove"
+"send"
+"copy"
+"move"
+"download"
+"upload"
+"install"
+"fix"
+"repair"
+"debug"
+"compare"
+"show"
+"open"
+"read"
+"write"
+"generate"
+"design"
+"convert"
+"zip"
+"unzip"
+"start"
+"stop"
+"restart"
+"shutdown"
+
+Also understand conversational references:
+
+"that file"
+"the one we just created"
+"the same folder"
+"the other PC"
+"all computers"
+"my laptop"
+"the offline one"
+
+Maintain conversation state.
+
+---
+
+# 32. CONVERSATION MEMORY
+
+The AI session should remember:
+
+* selected devices
+* recent files
+* recent commands
+* task IDs
+* generated artifacts
+* paths
+* errors
+* previous confirmations
+* current task
+
+Example:
+
+User:
+"Create it in Documents."
+
+AI should understand "it" from the immediately previous task.
+
+Do not send the entire conversation to every device.
+
+Only send necessary execution context.
+
+---
+
+# 33. SECURITY
+
+Never expose AI API keys to:
+
+* browser JavaScript
+* React source
+* localStorage
+* device agents
+* users
+
+The AI API key must remain server-side.
+
+Use environment variables.
+
+Example:
+
+AI_PROVIDER=openai
+OPENAI_API_KEY=...
+AI_MODEL=...
+
+or:
+
+AI_PROVIDER=anthropic
+ANTHROPIC_API_KEY=...
+AI_MODEL=...
+
+The browser should call:
+
+/api/ai
+
+not the provider directly.
+
+---
+
+# 34. PROVIDER ABSTRACTION
+
+Create:
+
+src/lib/ai/
+
+Possible structure:
+
+ai.server.ts
+ai.types.ts
+ai.tools.ts
+ai.orchestrator.ts
+ai-prompts.ts
+ai-confirmations.ts
+ai-tasks.ts
+
+The provider should be replaceable.
+
+Example:
+
+AIProvider
+
+OpenAIProvider
+AnthropicProvider
+
+This means FileLink is not locked to one AI company.
+
+---
+
+# 35. AI API
+
+Create server-side endpoint:
+
+/api/ai
+
+Supported operations:
+
+chat
+plan
+execute
+confirm
+cancel
+status
+resume
+stream
+
+Do not allow arbitrary browser requests to execute commands.
+
+---
+
+# 36. TOOL-CALL ARCHITECTURE
+
+The AI should receive tools such as:
+
+get_devices
+inspect_device
+list_files
+search_files
+read_file
+write_file
+create_directory
+run_command
+get_processes
+get_system_info
+get_disk_usage
+get_screenshot
+send_file
+create_artifact
+queue_task
+get_task_status
+request_confirmation
+
+Each tool should have strict input validation.
+
+---
+
+# 37. COMMAND EXECUTION
+
+`run_command` should receive:
+
+device
+command
+workingDirectory
+timeout
+reason
+riskLevel
+
+Example:
+
+{
+"device": "Hubeyb-PC",
+"command": "npm run build",
+"workingDirectory": "C:\Projects\FileLink",
+"timeout": 120000,
+"reason": "Verify the project after editing package.json",
+"riskLevel": "safe"
+}
+
+The server validates it.
+
+Then FileLink executes it through the existing RPC system.
+
+---
+
+# 38. COMMAND RISK LEVELS
+
+Define:
+
+safe
+low
+medium
+high
+critical
+
+Examples:
+
+npm run build
+safe
+
+mkdir
+low
+
+write source file
+medium
+
+install software
+high
+
+delete important file
+critical
+
+shutdown
+high
+
+format drive
+critical
+
+AI cannot automatically execute critical operations.
+
+---
+
+# 39. FILE READ LIMITS
+
+Never allow an AI request to accidentally read an entire disk.
+
+Implement:
+
+* max file size
+* allowed paths
+* maximum recursive depth
+* maximum number of files
+* timeout
+* output truncation
+
+For large files:
+
+read only relevant sections.
+
+---
+
+# 40. SECRET PROTECTION
+
+Do not automatically send:
+
+* passwords
+* API keys
+* tokens
+* private keys
+* cookies
+* credential stores
+
+to the AI.
+
+Implement secret detection/redaction.
+
+Examples:
+
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+password=
+token=
+Authorization:
+private key blocks
+
+Show:
+
+[REDACTED SECRET]
+
+---
+
+# 41. AI OUTPUT
+
+The final answer should be understandable.
+
+Bad:
+
+"RPC 9283 succeeded."
+
+Good:
+
+"Done. I found that the build was failing because `TasksTab.tsx` imported `remoteBrowserTabs`, but `linkClient.ts` did not export it. I added the missing export and ran the build again. The build completed successfully."
+
+Show the technical details underneath.
+
+---
+
+# 42. ACTION HISTORY
+
+Every AI action should be logged.
+
+Example:
+
+20:42
+AI started task
+
+20:42
+Hubeyb-PC inspected
+
+20:43
+package.json read
+
+20:43
+Build started
+
+20:44
+Build failed
+
+20:44
+Error analyzed
+
+20:45
+File edited
+
+20:45
+Build restarted
+
+20:46
+✓ Completed
+
+The user can expand each entry.
+
+---
+
+# 43. ANIMATION
+
+Make the UI feel like a professional AI computer operator.
+
+Use subtle animations:
+
+* pulsing device status
+* streaming terminal text
+* progress bars
+* command cards sliding into view
+* animated arrows
+* file diff transitions
+* success checkmark
+* error shake
+* offline waiting indicator
+* device execution timeline
+
+Do not make it childish or excessively colorful.
+
+Keep the existing FileLink visual language.
+
+---
+
+# 44. AI TAB DESIGN
+
+Recommended layout:
+
+LEFT:
+
+AI conversation
+
+CENTER:
+
+live execution/activity
+
+RIGHT:
+
+selected devices + task status
+
+On smaller screens:
+
+Conversation
+↓
+Execution
+↓
+Devices
+
+---
+
+# 45. TOP AI HEADER
+
+Example:
+
+AI Assistant
+Connected to 3 devices
+
+[3 Online] [1 Offline]
+
+Selected:
+
+[Hubeyb-PC ×]
+[Office-PC ×]
+
+[+ Add device]
+
+---
+
+# 46. INPUT
+
+Bottom input:
+
+"Ask FileLink AI to inspect or manage your PCs..."
+
+Buttons:
+
+Attach
+Device selector
+Send
+
+Support Enter to send.
+
+Shift+Enter = newline.
+
+---
+
+# 47. SUGGESTIONS
+
+When no conversation exists:
+
+"What can I help with?"
+
+Cards:
+
+Inspect my PC
+Check system health
+Debug a project
+Find large files
+Create a PowerPoint
+Send a file
+Compare PCs
+
+These should be examples, not restrictions.
+
+---
+
+# 48. DEVICE OFFLINE UX
+
+When user selects an offline PC:
+
+Show:
+
+○ Office-PC
+Offline
+
+AI can:
+
+[Wait for PC]
+[Prepare in Cloud]
+[Choose another device]
+
+If the user says:
+
+"Do it when it comes online."
+
+Create a queued AI task.
+
+---
+
+# 49. ONLINE EVENT
+
+The existing heartbeat/device system should trigger AI queue checking.
+
+When a device changes:
+
+offline → online
+
+check:
+
+ai_tasks
+
+If pending tasks exist:
+
+show notification.
+
+Do not silently run dangerous operations.
+
+---
+
+# 50. QUEUED TASK EXECUTION
+
+When online:
+
+queued
+↓
+planning
+↓
+confirmation if required
+↓
+running
+↓
+verifying
+↓
+completed
+
+If execution fails:
+
+failed
+
+AI can analyze the error.
+
+If repair is safe:
+
+repair
+↓
+retry
+
+---
+
+# 51. CLOUD ARTIFACTS
+
+When user asks for an artifact while the PC is offline:
+
+generate it in cloud storage.
+
+Examples:
+
+Presentation.pptx
+Report.docx
+Spreadsheet.xlsx
+Website.zip
+
+Store metadata:
+
+filename
+mime type
+size
+task id
+created by
+target device
+destination
+status
+
+When device comes online:
+
+transfer artifact.
+
+---
+
+# 52. DESTINATION HANDLING
+
+Every file transfer should have:
+
+source
+destination device
+destination folder
+filename
+overwrite policy
+
+Example:
+
+Source:
+AI Workspace/Presentation.pptx
+
+Target:
+Hubeyb-PC
+
+Destination:
+C:\Users\Hubeyb\Desktop\School
+
+Filename:
+FileLink Presentation.pptx
+
+---
+
+# 53. VERIFY TRANSFERS
+
+After sending an artifact:
+
+AI should verify:
+
+* file exists
+* expected filename
+* expected size
+* optionally checksum
+
+Then:
+
+✓ Transfer verified.
+
+---
+
+# 54. ALL-DEVICE TASKS
+
+For:
+
+"Check all my PCs."
+
+Create parent task:
+
+Check all devices
+
+Children:
+
+Hubeyb-PC
+Office-PC
+School-PC
+
+Each child has independent status.
+
+Parent finishes only after all children are:
+
+completed
+failed
+cancelled
+offline/waiting
+
+---
+
+# 55. DIFFERENT DEVICE OS
+
+The AI must detect:
+
+Windows
+Linux
+macOS
+
+Do not assume Windows.
+
+The existing filelink.mjs already uses platform detection.
+
+Use appropriate commands for the OS.
+
+---
+
+# 56. COMMAND NORMALIZATION
+
+The AI should understand:
+
+"show me processes"
+
+→ tasklist
+
+"show system information"
+
+→ sysinfo
+
+"what is using RAM?"
+
+→ tasklist + analysis
+
+"show files"
+
+→ list
+
+"find package.json"
+
+→ search
+
+"read package.json"
+
+→ read
+
+But do not hard-code everything into a giant if/else list.
+
+Use AI tool calling.
+
+---
+
+# 57. EXISTING FILELINK FEATURES
+
+The AI should be able to integrate with:
+
+File Explorer
+Tasks
+PC Setup
+Control Center
+Devices
+Transfers
+Terminal
+
+Do not duplicate existing functionality unnecessarily.
+
+For example:
+
+AI "send this file to Office PC"
+
+should use the existing transfer infrastructure.
+
+---
+
+# 58. TERMINAL INTEGRATION
+
+Existing Terminal remains available.
+
+AI should be able to show:
+
+"Open in Terminal"
+
+when a command is relevant.
+
+Example:
+
+[Run]
+[Open in Terminal]
+
+---
+
+# 59. HUMAN CONTROL
+
+The AI is an assistant, not an unrestricted administrator.
+
+The user always remains in control of:
+
+* destructive actions
+* administrator operations
+* sensitive files
+* system changes
+* software installation
+* shutdown/restart
+* permanent deletion
+
+---
+
+# 60. AI SYSTEM PROMPT
+
+Create a strong system prompt.
+
+Core behavior:
+
+"You are FileLink AI, a computer-management assistant operating through the FileLink application.
+
+You do not directly access computers. You use FileLink tools.
+
+Always inspect the target device before making assumptions.
+
+Use the smallest number of operations necessary.
+
+When the user asks to diagnose a problem, inspect evidence before proposing a cause.
+
+When the user asks to fix a problem, attempt a safe repair and verify it.
+
+Never claim an operation succeeded until the device reports success.
+
+Never fabricate command output, files, paths, device status, or results.
+
+If a device is offline, do not pretend to execute the operation.
+
+Create a persistent queued task when the user wants the operation performed when the device returns.
+
+If an operation is dangerous, destructive, requires administrator permission, replaces an existing file, or exposes sensitive information, request explicit confirmation.
+
+When an operation fails, analyze the actual error and decide whether a safe repair is possible.
+
+After making a change, verify the result.
+
+For multiple devices, process them independently and clearly separate their results.
+
+Be concise in the final answer but provide technical details in expandable execution cards."
+
+---
+
+# 61. AI SHOULD REASON FROM REAL RESULTS
+
+Never do:
+
+AI:
+"I think Node is installed."
+
+Instead:
+
+AI tool:
+where node
+
+Device:
+C:\Program Files\nodejs\node.exe
+
+AI:
+"Node is installed."
+
+Everything important should be evidence-based.
+
+---
+
+# 62. AI EXECUTION STATE MACHINE
+
+Implement a state machine:
+
+IDLE
+↓
+PLANNING
+↓
+INSPECTING
+↓
+WAITING_CONFIRMATION
+↓
+EXECUTING
+↓
+OBSERVING
+↓
+ANALYZING
+↓
+REPAIRING
+↓
+VERIFYING
+↓
+COMPLETED
+
+Error:
+
+EXECUTING
+↓
+FAILED
+↓
+ANALYZING_ERROR
+↓
+REPAIRING
+↓
+VERIFYING
+
+Offline:
+
+PLANNING
+↓
+WAITING_OFFLINE
+↓
+DEVICE_ONLINE
+↓
+RESUME
+
+---
+
+# 63. STREAMING AI RESPONSE
+
+The AI conversation itself should stream.
+
+Example:
+
+"Let me inspect..."
+
+Then execution card appears.
+
+Then:
+
+"I found..."
+
+Then command starts.
+
+Then:
+
+"The build failed because..."
+
+Then repair.
+
+This should feel like a live agent, not a page that freezes.
+
+---
+
+# 64. DATABASE MIGRATION
+
+Add the necessary AI tables through a Supabase migration.
+
+At minimum:
+
+ai_tasks
+ai_task_steps
+ai_messages
+ai_artifacts
+ai_confirmations
+
+Possible fields:
+
+ai_task_steps:
+id
+task_id
+device_id
+type
+title
+status
+command
+working_directory
+input
+output
+error
+diff
+started_at
+completed_at
+
+ai_messages:
+id
+task_id
+role
+content
+tool_name
+tool_call
+created_at
+
+ai_artifacts:
+id
+task_id
+filename
+path
+mime_type
+size
+storage_path
+target_device
+destination
+status
+
+ai_confirmations:
+id
+task_id
+step_id
+question
+risk_level
+status
+created_at
+answered_at
+
+---
+
+# 65. DO NOT PUT AI KEYS IN SUPABASE CLIENT CODE
+
+Use server environment variables.
+
+Example:
+
+AI_PROVIDER=openai
+OPENAI_API_KEY=...
+OPENAI_MODEL=...
+
+OR:
+
+AI_PROVIDER=anthropic
+ANTHROPIC_API_KEY=...
+ANTHROPIC_MODEL=...
+
+Never:
+
+VITE_OPENAI_API_KEY
+VITE_ANTHROPIC_API_KEY
+
+Never expose the key to the browser.
+
+---
+
+# 66. PROVIDER RECOMMENDATION
+
+Make the application provider-independent.
+
+For the first implementation, support OpenAI and Anthropic.
+
+OpenAI's current API documentation identifies GPT-5.6 Sol as its flagship model for complex reasoning and coding and supports functions, file search, web search and computer-use capabilities.
+
+Anthropic's current documentation describes current Claude models as suitable for tool use and agentic systems and specifically discusses long-horizon reasoning, tool use, and document/presentation creation.
+
+Recommended configuration:
+
+AI_PROVIDER=openai
+AI_MODEL=gpt-5.6-sol
+
+Allow changing this later to an Anthropic model without changing the FileLink architecture.
+
+Do NOT expose the provider choice as a requirement for the user.
+
+---
+
+# 67. API KEY SETTINGS
+
+Add an admin/settings page:
+
+AI Provider
+
+OpenAI
+Anthropic
+
+API Key
+
+••••••••••••••
+
+Model
+
+gpt-5.6-sol
+
+Save
+
+Test connection
+
+The API key should be stored securely server-side.
+
+If this is a personal deployment, environment variables are preferable.
+
+---
+
+# 68. API COST CONTROL
+
+Implement:
+
+maximum output tokens
+maximum tool calls
+maximum task runtime
+maximum retries
+maximum file-read size
+maximum number of files
+maximum concurrent device tasks
+
+Also show optional usage information.
+
+---
+
+# 69. AI FAILURE
+
+If the AI provider fails:
+
+"AI service unavailable."
+
+Do not make it look like the PC failed.
+
+If the PC fails:
+
+"Device execution failed."
+
+If the RPC fails:
+
+"FileLink communication failed."
+
+If the command fails:
+
+"Command failed."
+
+Keep these errors separate.
+
+---
+
+# 70. FINAL RESPONSE FORMAT
+
+After completing a task:
+
+✓ Done
+
+Device:
+Hubeyb-PC
+
+Task:
+Fixed FileLink build
+
+What I found:
+`linkClient.ts` was missing required exports.
+
+What I changed:
+Added the required exports.
+
+Verification:
+`npm run build`
+
+Result:
+✓ Build completed successfully.
+
+Files changed:
+
+1. `src/lib/linkClient.ts`
+
+---
+
+# 71. IMPLEMENTATION ORDER
+
+Implement in this order:
+
+PHASE 1
+AI tab UI
+
+PHASE 2
+AI server endpoint
+
+PHASE 3
+provider abstraction
+
+PHASE 4
+device selector
+
+PHASE 5
+AI tool definitions
+
+PHASE 6
+existing RPC integration
+
+PHASE 7
+live execution cards
+
+PHASE 8
+file inspection/editing
+
+PHASE 9
+confirmation system
+
+PHASE 10
+offline task queue
+
+PHASE 11
+online notification/resume
+
+PHASE 12
+artifact generation
+
+PHASE 13
+PowerPoint/document generation
+
+PHASE 14
+multi-device orchestration
+
+PHASE 15
+error diagnosis and automatic repair
+
+PHASE 16
+security hardening
+
+PHASE 17
+testing
+
+---
+
+# 72. IMPORTANT EXISTING FILES TO MODIFY
+
+Inspect and integrate with:
+
+src/routes/index.tsx
+
+src/lib/linkClient.ts
+
+src/lib/link.server.ts
+
+public/filelink.mjs
+
+src/components/link/Terminal.tsx
+
+src/components/link/DevicesTab.tsx
+
+src/components/link/FileExplorerTab.tsx
+
+src/components/link/TransfersDialog.tsx
+
+src/components/link/TransferManager.tsx
+
+supabase/migrations/
+
+Create new components:
+
+src/components/link/AITab.tsx
+
+src/components/link/AIChat.tsx
+
+src/components/link/AIExecutionCard.tsx
+
+src/components/link/AIDeviceSelector.tsx
+
+src/components/link/AITaskTimeline.tsx
+
+src/components/link/AIDiffViewer.tsx
+
+src/components/link/AIConfirmation.tsx
+
+src/components/link/AIArtifactCard.tsx
+
+src/components/link/AIQueueBanner.tsx
+
+src/components/link/AISidebar.tsx
+
+Create server modules:
+
+src/lib/ai/ai.server.ts
+
+src/lib/ai/ai.types.ts
+
+src/lib/ai/ai.tools.ts
+
+src/lib/ai/ai.orchestrator.ts
+
+src/lib/ai/ai-prompts.ts
+
+src/lib/ai/ai-security.ts
+
+src/lib/ai/providers/openai.server.ts
+
+src/lib/ai/providers/anthropic.server.ts
+
+---
+
+# 73. DO NOT BREAK EXISTING FEATURES
+
+After implementation, verify:
+
+* login
+* account system
+* room connection
+* device connection
+* file explorer
+* file transfer
+* offline transfer
+* terminal
+* remote shell
+* task list
+* PC info
+* control center
+* devices
+* background agent
+* power controls
+* clipboard
+* screenshots
+* existing RPC
+* existing CLI
+
+The AI feature must be additive.
+
+---
+
+# 74. TEST SCENARIOS
+
+Test:
+
+1. One online PC
+2. One offline PC
+3. Multiple online PCs
+4. ALL devices
+5. One device becomes offline during execution
+6. Device reconnects
+7. Command succeeds
+8. Command fails
+9. AI diagnoses error
+10. AI fixes error
+11. File already exists
+12. User says yes
+13. User says no
+14. Administrator permission required
+15. User refuses admin
+16. File creation
+17. File editing
+18. File transfer
+19. Offline artifact generation
+20. PowerPoint creation
+21. PowerPoint transfer
+22. Network failure
+23. AI provider failure
+24. malformed AI tool call
+25. very large file
+26. sensitive file
+27. destructive command
+28. multiple PCs with different OS
+29. browser refresh during task
+30. browser closed and reopened
+
+---
+
+# 75. MOST IMPORTANT RULE
+
+Never show fake live output.
+
+If the device has not returned the output, do not invent it.
+
+If the device is offline, show:
+
+○ Waiting for device
+
+If the command is running:
+
+● Running
+
+If the command succeeded:
+
+✓ Completed
+
+If the command failed:
+
+✕
+
+Failed
+
+Always distinguish:
+
+AI thinking/planning
+from
+actual device execution.
+
+---
+
+# 76. FINAL GOAL
+
+The finished FileLink AI should feel like:
+
+"Tell FileLink what you want done on your computers, and FileLink AI figures out what needs to be inspected, asks for permission when necessary, executes the work through the connected device, shows everything happening live, understands errors, repairs problems when safe, verifies the result, queues work for offline PCs, creates files/artifacts, and reports exactly what happened."
+
+It should NOT feel like:
+
+"a chatbot with a terminal button."
+
+It should feel like:
+
+"an AI computer-management operating layer built into FileLink."
+
+Before finishing, run:
+
+npm run build
+
+npm run lint
+
+and fix all TypeScript/build/lint errors.
+
+Do not remove existing functionality merely to make the AI feature compile.
+
+Finish with a complete implementation and explain:
+
+1. Files changed
+2. Database migrations added
+3. Environment variables required
+4. AI provider configuration
+5. New AI tools
+6. New security/confirmation rules
+7. Offline queue behavior
+8. Multi-device behavior
+9. Artifact generation behavior
+10. How to test the feature

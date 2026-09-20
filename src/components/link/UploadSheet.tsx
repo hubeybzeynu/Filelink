@@ -66,16 +66,16 @@ export function UploadSheet({
             setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
           }}
           className={`ios-card-hover mb-6 cursor-pointer rounded-[20px] border-2 border-dashed p-10 text-center transition-colors ${
-            over ? "border-primary bg-primary/10" : "border-border/80 bg-cardhover/40 hover:border-primary/50"
+            over
+              ? "border-primary bg-primary/10"
+              : "border-border/80 bg-cardhover/40 hover:border-primary/50"
           }`}
         >
           <Upload className="mx-auto mb-3 size-10 text-muted-foreground" strokeWidth={1.5} />
           <p className="text-sm font-medium text-foreground md:text-base">
             Tap to browse files or drop here
           </p>
-          <p className="mt-1.5 font-mono text-xs text-muted-foreground">
-            Multiple files supported
-          </p>
+          <p className="mt-1.5 font-mono text-xs text-muted-foreground">Multiple files supported</p>
         </div>
 
         {files.length > 0 && (
@@ -87,7 +87,9 @@ export function UploadSheet({
               >
                 <span className="min-w-0 truncate font-mono text-xs text-foreground">{f.name}</span>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-mono text-[11px] text-muted-foreground">{humanSize(f.size)}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    {humanSize(f.size)}
+                  </span>
                   <button
                     onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
                     aria-label={`Remove ${f.name}`}

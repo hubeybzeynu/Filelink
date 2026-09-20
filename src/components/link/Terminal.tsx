@@ -16,7 +16,6 @@ import {
   type Session,
 } from "@/lib/linkClient";
 
-
 import { PasswordDialog } from "@/components/link/PasswordDialog";
 
 type Line = { kind: "in" | "out" | "ok" | "err" | "dim" | "warn"; text: string };
@@ -130,13 +129,11 @@ export function Terminal({
   const [shellMenuOpen, setShellMenuOpen] = useState(false);
   const [shellAvailability, setShellAvailability] = useState<Record<string, boolean | null>>({});
 
-  const push = (kind: Line["kind"], text: string) =>
-    setLines((prev) => [...prev, { kind, text }]);
+  const push = (kind: Line["kind"], text: string) => setLines((prev) => [...prev, { kind, text }]);
 
   function guarded(reason: string) {
     setLockReason(reason);
   }
-
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -187,7 +184,10 @@ export function Terminal({
       throw new Error(`${device} is offline`);
     }
 
-    push("warn", `SECURITY: running a command on ${device}. The PC owner must have started the CLI with --shell.`);
+    push(
+      "warn",
+      `SECURITY: running a command on ${device}. The PC owner must have started the CLI with --shell.`,
+    );
     const { callId } = await remoteExecStart(session, device, command);
     push("dim", `started on ${device}: ${command}`);
 
@@ -254,7 +254,8 @@ export function Terminal({
   }
 
   /** Learns the real starting directory on the target PC when admin mode turns on. */
-  async function bootstrapAdminCwd(deviceName: string) {    try {
+  async function bootstrapAdminCwd(deviceName: string) {
+    try {
       const { callId } = await remoteExecStart(session, deviceName, "cd");
       let status = "pending";
       let chunks: string[] = [];
@@ -392,7 +393,7 @@ export function Terminal({
       if (cmd === "cd" && arg.startsWith("@")) {
         const parsed = parseCdAt(arg);
         if (!parsed) {
-          push("err", "Usage: cd @<device> or cd @\"<device name>\"");
+          push("err", 'Usage: cd @<device> or cd @"<device name>"');
           setBusy(false);
           return;
         }
@@ -432,7 +433,15 @@ export function Terminal({
 
       // Admin shell pass-through: when admin mode is active, unknown commands
       // are sent straight to the remote PC as native shell commands.
-      if (adminDevice && remote && cmd !== "exit" && cmd !== "quit" && cmd !== "help" && cmd !== "clear" && cmd !== "pwd") {
+      if (
+        adminDevice &&
+        remote &&
+        cmd !== "exit" &&
+        cmd !== "quit" &&
+        cmd !== "help" &&
+        cmd !== "clear" &&
+        cmd !== "pwd"
+      ) {
         if (cmd === "admin") {
           push("dim", "Already in admin mode. Type exit to leave.");
           setBusy(false);
@@ -503,7 +512,9 @@ export function Terminal({
               {},
               session,
             );
-            r.devices.forEach((d) => push("out", `${d.online ? "● online " : "○ offline"}  ${d.name}`));
+            r.devices.forEach((d) =>
+              push("out", `${d.online ? "● online " : "○ offline"}  ${d.name}`),
+            );
             break;
           }
           case "exit":
@@ -520,7 +531,10 @@ export function Terminal({
             }
             break;
           default:
-            push("err", `${cmd} is not available while browsing ${remote.name} — use ls, cd, search, get, admin, cd @`);
+            push(
+              "err",
+              `${cmd} is not available while browsing ${remote.name} — use ls, cd, search, get, admin, cd @`,
+            );
         }
         setBusy(false);
         return;
@@ -583,13 +597,14 @@ export function Terminal({
           break;
         }
         case "devices": {
-          const r = await api<{ devices: { name: string; online: boolean; platform: string | null }[] }>(
-            "devices",
-            {},
-            session,
-          );
+          const r = await api<{
+            devices: { name: string; online: boolean; platform: string | null }[];
+          }>("devices", {}, session);
           r.devices.forEach((d) =>
-            push("out", `${d.online ? "● online " : "○ offline"}  ${d.name}${d.platform ? `  ${d.platform}` : ""}`),
+            push(
+              "out",
+              `${d.online ? "● online " : "○ offline"}  ${d.name}${d.platform ? `  ${d.platform}` : ""}`,
+            ),
           );
           break;
         }
@@ -602,7 +617,9 @@ export function Terminal({
           );
           push("out", "Received");
           if (!r.received.length) push("dim", "  nothing received yet");
-          r.received.forEach((t) => push("out", `  ${t.file_name} from ${t.from_name}  [${t.status}]`));
+          r.received.forEach((t) =>
+            push("out", `  ${t.file_name} from ${t.from_name}  [${t.status}]`),
+          );
           break;
         }
         case "exec": {
@@ -631,7 +648,9 @@ export function Terminal({
         <span className="size-2.5 rounded-full bg-destructive/70" />
         <span className="size-2.5 rounded-full bg-warning/70" />
         <span className="size-2.5 rounded-full bg-primary/70" />
-        <span className="ml-2 font-mono text-xs text-muted-foreground">filelink — {session.roomCode}</span>
+        <span className="ml-2 font-mono text-xs text-muted-foreground">
+          filelink — {session.roomCode}
+        </span>
         {adminDevice && (
           <div className="relative ml-auto">
             <button
@@ -712,7 +731,9 @@ export function Terminal({
           void run(v);
         }}
       >
-        <span className={remote ? (adminDevice ? "text-destructive" : "text-warning") : "text-primary"}>
+        <span
+          className={remote ? (adminDevice ? "text-destructive" : "text-warning") : "text-primary"}
+        >
           {promptText()}
         </span>
         <input
@@ -723,7 +744,9 @@ export function Terminal({
           spellCheck={false}
           type={passwordMode ? "password" : "text"}
           className="flex-1 bg-transparent text-foreground caret-primary outline-none placeholder:text-muted-foreground/50"
-          placeholder={busy ? "working…" : passwordMode ? "type passcode" : "type a command, e.g. ls"}
+          placeholder={
+            busy ? "working…" : passwordMode ? "type passcode" : "type a command, e.g. ls"
+          }
         />
       </form>
 

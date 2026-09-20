@@ -163,7 +163,9 @@ export function DevicesTab({
         <div className="fixed inset-0 z-[110] grid place-items-center bg-black/75 p-4 backdrop-blur-md">
           <div className="w-full max-w-sm rounded-[28px] border border-border bg-card p-6 shadow-2xl">
             <AlertTriangle className="mx-auto size-9 text-destructive" />
-            <h4 className="mt-3 text-center text-base font-bold text-foreground">Delete {target.name}?</h4>
+            <h4 className="mt-3 text-center text-base font-bold text-foreground">
+              Delete {target.name}?
+            </h4>
             <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">
               {target.online
                 ? "It's currently online — the agent will be told to uninstall itself (removing filelink.mjs, its startup shortcut, and its data folder) before being removed from this room."

@@ -28,8 +28,7 @@ function pct(status: string) {
 
 function label(status: string, kind: "sent" | "received") {
   if (status === "uploading") return kind === "sent" ? "uploading…" : "sender is uploading…";
-  if (status === "pending")
-    return kind === "sent" ? "sending — waiting for that PC" : "receiving…";
+  if (status === "pending") return kind === "sent" ? "sending — waiting for that PC" : "receiving…";
   if (status === "received") return "delivered";
   if (status === "shared") return "in the room";
   return status;
@@ -66,7 +65,9 @@ export function TransfersPanel({
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold leading-tight text-foreground md:text-2xl">Transfers</h2>
+          <h2 className="text-base font-bold leading-tight text-foreground md:text-2xl">
+            Transfers
+          </h2>
           <span className="font-mono text-xs uppercase tracking-widest text-primary">
             {live.length
               ? `${live.length} moving right now`
@@ -103,7 +104,9 @@ export function TransfersPanel({
 
       <div className="rounded-[20px] border border-border bg-card p-6">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Right now</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Right now
+          </h3>
           {jobs.some((j) => j.status !== "active") && (
             <button
               onClick={clearFinishedJobs}
@@ -116,18 +119,28 @@ export function TransfersPanel({
         {!jobs.length && <p className="text-sm text-muted-foreground">Nothing moving</p>}
         <ul className="space-y-3">
           {jobs.slice(0, 12).map((j) => {
-            const p = j.total ? Math.min(100, (j.loaded / j.total) * 100) : j.status === "done" ? 100 : 8;
+            const p = j.total
+              ? Math.min(100, (j.loaded / j.total) * 100)
+              : j.status === "done"
+                ? 100
+                : 8;
             return (
               <li key={j.id} className="rounded-md border border-border p-3">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                   <span className="truncate text-sm text-foreground">{j.name}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{Math.round(p)}%</span>
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                    {Math.round(p)}%
+                  </span>
                 </div>
                 <Progress value={p} className="mt-2 h-1.5" />
                 <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
                   {humanSize(j.loaded)}
                   {j.total ? ` / ${humanSize(j.total)}` : ""} ·{" "}
-                  {j.status === "active" ? humanSpeed(j.bps) : j.status === "done" ? "finished" : j.note}
+                  {j.status === "active"
+                    ? humanSpeed(j.bps)
+                    : j.status === "done"
+                      ? "finished"
+                      : j.note}
                   {j.note && j.status !== "error" ? ` · ${j.note}` : ""}
                 </p>
               </li>
@@ -200,7 +213,11 @@ export function TransfersDialog({
             {!jobs.length && <p className="text-sm text-muted-foreground">Nothing moving</p>}
             <ul className="space-y-3">
               {jobs.slice(0, 12).map((j) => {
-                const p = j.total ? Math.min(100, (j.loaded / j.total) * 100) : j.status === "done" ? 100 : 8;
+                const p = j.total
+                  ? Math.min(100, (j.loaded / j.total) * 100)
+                  : j.status === "done"
+                    ? 100
+                    : 8;
                 return (
                   <li key={j.id} className="rounded-md border border-border p-3">
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
@@ -255,7 +272,9 @@ export function TransferSection({
 
   return (
     <section>
-      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{head}</h3>
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {head}
+      </h3>
       {!list.length && <p className="text-sm text-muted-foreground">Nothing here</p>}
       <ul className="space-y-3">
         {visible.map((t) => (

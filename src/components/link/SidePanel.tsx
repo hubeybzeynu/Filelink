@@ -53,7 +53,9 @@ export function SidePanel({
   }, [onRefresh]);
 
   useEffect(() => {
-    roomUsage(session).then(setUsage).catch(() => setUsage(null));
+    roomUsage(session)
+      .then(setUsage)
+      .catch(() => setUsage(null));
   }, [session, sent.length, received.length]);
 
   async function powerOff() {
@@ -79,7 +81,10 @@ export function SidePanel({
           </h2>
           <HardDrive className="size-4 shrink-0 text-muted-foreground" />
         </div>
-        <Progress value={usage ? Math.min(100, (usage.used / usage.quota) * 100) : 0} className="h-2" />
+        <Progress
+          value={usage ? Math.min(100, (usage.used / usage.quota) * 100) : 0}
+          className="h-2"
+        />
         <p className="mt-2 font-mono text-[11px] text-muted-foreground">
           {usage
             ? `${humanSize(usage.used)} used · ${humanSize(usage.quota - usage.used)} free of ${humanSize(usage.quota)} · ${usage.files} files`
@@ -189,7 +194,9 @@ export function SidePanel({
               </p>
             </li>
           ))}
-          {!received.length && <li className="text-sm text-muted-foreground">Nothing received yet</li>}
+          {!received.length && (
+            <li className="text-sm text-muted-foreground">Nothing received yet</li>
+          )}
         </ul>
       </section>
     </div>

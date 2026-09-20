@@ -3,7 +3,10 @@ import { ChevronDown, Check, Monitor, Search, X } from "lucide-react";
 import type { DeviceInfo } from "@/lib/linkClient";
 
 function initials(name: string) {
-  const parts = name.replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/);
+  const parts = name
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .trim()
+    .split(/\s+/);
   if (parts.length === 0) return "PC";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -70,12 +73,16 @@ export function DevicePickerDialog({
       .filter((d) => !term || d.name.toLowerCase().includes(term));
   }, [devices, q, onlineOnly, excludeName]);
 
-  const allSelected = multiple && list.length > 0 && list.every((d) => selectedNames.includes(d.name));
+  const allSelected =
+    multiple && list.length > 0 && list.every((d) => selectedNames.includes(d.name));
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="animate-main-ui flex w-full max-w-md flex-col gap-4 rounded-[28px] border border-border bg-card p-6 shadow-terminal md:p-8"
         onClick={(e) => e.stopPropagation()}
@@ -126,7 +133,9 @@ export function DevicePickerDialog({
                 onClose();
               }}
               className={`ios-card-hover flex w-full items-center justify-between rounded-xl border p-4 text-left ${
-                selected === "" ? "border-primary bg-primary/10" : "border-border/60 bg-cardhover/60"
+                selected === ""
+                  ? "border-primary bg-primary/10"
+                  : "border-border/60 bg-cardhover/60"
               }`}
             >
               <div className="flex min-w-0 items-center gap-3">
@@ -134,8 +143,12 @@ export function DevicePickerDialog({
                   RM
                 </div>
                 <div className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-foreground">{roomLabel}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">Files stored in the cloud</span>
+                  <span className="block truncate text-sm font-bold text-foreground">
+                    {roomLabel}
+                  </span>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    Files stored in the cloud
+                  </span>
                 </div>
               </div>
               <span className="shrink-0 font-mono text-xs text-primary">Select →</span>
@@ -168,7 +181,9 @@ export function DevicePickerDialog({
                     {initials(d.name)}
                   </div>
                   <div className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-foreground">{d.name}</span>
+                    <span className="block truncate text-sm font-bold text-foreground">
+                      {d.name}
+                    </span>
                     <span className="font-mono text-[11px] text-muted-foreground">
                       {d.online ? "Connected" : "Offline"} · {d.osInfo || d.platform || "PC"}
                       {d.agent ? " · agent" : ""}
@@ -178,7 +193,9 @@ export function DevicePickerDialog({
                 {multiple ? (
                   <span
                     className={`grid size-6 shrink-0 place-items-center rounded-full border ${
-                      isOn ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
+                      isOn
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-transparent"
                     }`}
                   >
                     <Check className="size-3.5" />
@@ -237,7 +254,9 @@ export function AvailableDevicesBox({
           <button
             onClick={() => onSelect("")}
             className={`ios-btn flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium ${
-              selected === "" ? "border-primary bg-primary/15 text-primary" : "border-border bg-cardhover/60 text-foreground"
+              selected === ""
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border bg-cardhover/60 text-foreground"
             }`}
           >
             {roomLabel}
@@ -260,7 +279,9 @@ export function AvailableDevicesBox({
           </button>
         ))}
         {devices.length === 0 && (
-          <span className="px-2 py-1 text-xs text-muted-foreground">No other devices in this room yet.</span>
+          <span className="px-2 py-1 text-xs text-muted-foreground">
+            No other devices in this room yet.
+          </span>
         )}
       </div>
     </div>

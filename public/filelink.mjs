@@ -17,7 +17,6 @@ import readline from "node:readline";
 import { spawn, execSync } from "node:child_process";
 import crypto from "node:crypto";
 
-
 const STATE_FILE = path.join(os.homedir(), ".filelink.json");
 const INBOX = path.resolve(process.cwd(), "filelink-inbox");
 
@@ -74,7 +73,10 @@ function readClipboard() {
       return runSync('powershell -NoProfile -Command "Get-Clipboard"', 3000);
     } catch {}
     try {
-      return runSync('powershell -NoProfile -Command "[System.Windows.Forms.Clipboard]::GetText()"', 3000);
+      return runSync(
+        'powershell -NoProfile -Command "[System.Windows.Forms.Clipboard]::GetText()"',
+        3000,
+      );
     } catch {}
   } else if (process.platform === "darwin") {
     try {
@@ -97,7 +99,10 @@ function writeClipboard(text) {
     // BOTH cmd.exe and PowerShell — anything with &, %, ^, quotes, or a
     // newline silently breaks it. Writing to a temp file and having
     // PowerShell read that avoids command-line escaping entirely.
-    const tmp = path.join(os.tmpdir(), `filelink-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+    const tmp = path.join(
+      os.tmpdir(),
+      `filelink-clip-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`,
+    );
     try {
       fs.writeFileSync(tmp, text, "utf8");
       execSync(
@@ -108,7 +113,9 @@ function writeClipboard(text) {
     } catch {
       return false;
     } finally {
-      try { fs.unlinkSync(tmp); } catch {}
+      try {
+        fs.unlinkSync(tmp);
+      } catch {}
     }
   } else if (process.platform === "darwin") {
     try {
@@ -154,10 +161,7 @@ function startClipboardMonitor() {
   }, 4000);
 }
 
-
-
 async function api(action, payload = {}) {
-
   const res = await fetch(`${state.origin}/api/public/link`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -314,22 +318,35 @@ function getSysInfo() {
     } catch {}
   }
   try {
-    const total = Number(runSync('powershell -command "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"'));
-    const free = Number(runSync('powershell -command "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"')) * 1024;
+    const total = Number(
+      runSync('powershell -command "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"'),
+    );
+    const free =
+      Number(
+        runSync('powershell -command "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"'),
+      ) * 1024;
     if (total) ramTotal = total;
     if (free) ramUsed = total - free;
   } catch {}
   try {
-    const up = runSync('powershell -command "(Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime | Select-Object Days,Hours,Minutes | ConvertTo-Csv -NoTypeInformation"');
+    const up = runSync(
+      'powershell -command "(Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime | Select-Object Days,Hours,Minutes | ConvertTo-Csv -NoTypeInformation"',
+    );
     const rows = parseWmicCsv(up);
     const r = rows[0] || {};
-    const parts = [r.Days && `${r.Days}d`, r.Hours && `${r.Hours}h`, r.Minutes && `${r.Minutes}m`].filter(Boolean);
+    const parts = [
+      r.Days && `${r.Days}d`,
+      r.Hours && `${r.Hours}h`,
+      r.Minutes && `${r.Minutes}m`,
+    ].filter(Boolean);
     uptime = parts.join(" ") || "";
   } catch {}
 
   const drives = [];
   try {
-    const out = runSync('powershell -command "Get-CimInstance Win32_LogicalDisk | Where-Object {$_.DriveType -eq 3} | Select-Object DeviceID,FreeSpace,Size | ConvertTo-Csv -NoTypeInformation"');
+    const out = runSync(
+      'powershell -command "Get-CimInstance Win32_LogicalDisk | Where-Object {$_.DriveType -eq 3} | Select-Object DeviceID,FreeSpace,Size | ConvertTo-Csv -NoTypeInformation"',
+    );
     parseWmicCsv(out).forEach((r) => {
       const total = Number(r.Size);
       const free = Number(r.FreeSpace);
@@ -349,7 +366,17 @@ function getSysInfo() {
     }
   } catch {}
 
-  return { hostname, os: osCaption, osVersion: osCaption, cpu, ramTotal, ramUsed, uptime, drives, network };
+  return {
+    hostname,
+    os: osCaption,
+    osVersion: osCaption,
+    cpu,
+    ramTotal,
+    ramUsed,
+    uptime,
+    drives,
+    network,
+  };
 }
 
 function getTasklist() {
@@ -371,7 +398,9 @@ function getTasklist() {
   // Get CPU per process.
   const cpuMap = new Map();
   try {
-    const out = runSync("wmic path Win32_PerfFormattedData_PerfProc_Process get Name,IDProcess,PercentProcessorTime /format:csv");
+    const out = runSync(
+      "wmic path Win32_PerfFormattedData_PerfProc_Process get Name,IDProcess,PercentProcessorTime /format:csv",
+    );
     parseWmicCsv(out).forEach((r) => {
       const pid = r.IDProcess || r.idProcess;
       const cpu = Number(r.PercentProcessorTime);
@@ -389,7 +418,8 @@ function getTasklist() {
     const cacheDir = path.join(os.tmpdir(), "filelink-icon-cache");
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 
-    const listPs = "Get-Process | Where-Object { $_.Path } | Select-Object -First 60 Id, Path | ForEach-Object { \"$($_.Id)|$($_.Path)\" }";
+    const listPs =
+      'Get-Process | Where-Object { $_.Path } | Select-Object -First 60 Id, Path | ForEach-Object { "$($_.Id)|$($_.Path)" }';
     const listOut = runSync(`powershell -NoProfile -Command "${listPs}"`, 8000);
     listOut.split("\n").forEach((line) => {
       const idx = line.indexOf("|");
@@ -401,7 +431,10 @@ function getTasklist() {
 
     const uncachedPaths = [];
     for (const exePath of new Set(pidToPath.values())) {
-      const cacheFile = path.join(cacheDir, `${crypto.createHash("md5").update(exePath).digest("hex")}.png`);
+      const cacheFile = path.join(
+        cacheDir,
+        `${crypto.createHash("md5").update(exePath).digest("hex")}.png`,
+      );
       if (fs.existsSync(cacheFile)) {
         const b64 = fs.readFileSync(cacheFile).toString("base64");
         iconMap.set(exePath, `data:image/png;base64,${b64}`);
@@ -424,7 +457,7 @@ function getTasklist() {
         "      $ms = New-Object System.IO.MemoryStream;",
         "      $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png);",
         "      $b64 = [Convert]::ToBase64String($ms.ToArray());",
-        "      Write-Output \"$exePath|$b64\";",
+        '      Write-Output "$exePath|$b64";',
         "      $ico.Dispose(); $bmp.Dispose(); $g.Dispose(); $ms.Dispose();",
         "    }",
         "  } catch {}",
@@ -439,7 +472,10 @@ function getTasklist() {
         if (!exePath || !b64) return;
         iconMap.set(exePath, `data:image/png;base64,${b64}`);
         try {
-          const cacheFile = path.join(cacheDir, `${crypto.createHash("md5").update(exePath).digest("hex")}.png`);
+          const cacheFile = path.join(
+            cacheDir,
+            `${crypto.createHash("md5").update(exePath).digest("hex")}.png`,
+          );
           fs.writeFileSync(cacheFile, Buffer.from(b64, "base64"));
         } catch {}
       });
@@ -462,12 +498,13 @@ function getTasklist() {
   return { processes };
 }
 
-
 function handleControl(params) {
   const { command } = params || {};
   switch (command) {
     case "rename": {
-      const newName = String(params?.name ?? "").trim().slice(0, 160);
+      const newName = String(params?.name ?? "")
+        .trim()
+        .slice(0, 160);
       if (newName && state) {
         state.deviceName = newName;
         info(`renamed to "${newName}"`);
@@ -476,7 +513,7 @@ function handleControl(params) {
     }
     case "cursorInfo": {
       const ps =
-        "Add-Type -AssemblyName System.Windows.Forms; $b = [System.Windows.Forms.SystemInformation]::VirtualScreen; Write-Output \"$($b.Width),$($b.Height)\"";
+        'Add-Type -AssemblyName System.Windows.Forms; $b = [System.Windows.Forms.SystemInformation]::VirtualScreen; Write-Output "$($b.Width),$($b.Height)"';
       const out = runSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, 5000);
       const [w, h] = out.trim().split(",").map(Number);
       return { width: w || 1920, height: h || 1080 };
@@ -513,8 +550,12 @@ function handleControl(params) {
       return { ok: true };
     }
     case "alert": {
-      const title = String(params?.title ?? "Message").replace(/'/g, "''").slice(0, 120);
-      const content = String(params?.content ?? "").replace(/'/g, "''").slice(0, 2000);
+      const title = String(params?.title ?? "Message")
+        .replace(/'/g, "''")
+        .slice(0, 120);
+      const content = String(params?.content ?? "")
+        .replace(/'/g, "''")
+        .slice(0, 2000);
       const ps = `Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('${content}', '${title}', 'OK', 'Information')`;
       // Spawned detached and unref'd — a MessageBox blocks until someone
       // clicks OK on that PC, so this must never be awaited/execSync'd or
@@ -626,7 +667,6 @@ function handleControl(params) {
   }
 }
 
-
 // Grab the current screen and hand it back as a base64 JPEG so the dashboard
 // can mirror what is happening on this PC while commands run.
 function getScreenshot(preview = false) {
@@ -679,10 +719,6 @@ function getScreenshot(preview = false) {
   return { image: data.toString("base64"), mime: "image/jpeg", at: Date.now() };
 }
 
-
-
-
-
 /* ------------------------------------------------- live sharing (no cloud) */
 
 // The folder this PC exposes live to the room. Other devices can browse and
@@ -694,7 +730,8 @@ function safeJoin(root, rel) {
   const clean = String(rel || "/").replace(/\\/g, "/");
   const abs = path.resolve(root, "." + (clean.startsWith("/") ? clean : "/" + clean));
   const rootAbs = path.resolve(root);
-  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep)) throw new Error("Outside the shared folder");
+  if (abs !== rootAbs && !abs.startsWith(rootAbs + path.sep))
+    throw new Error("Outside the shared folder");
   return abs;
 }
 
@@ -707,8 +744,11 @@ function localList(rel) {
     if (e.name.startsWith(".")) continue;
     try {
       if (e.isDirectory()) folders.push({ name: e.name });
-      else if (e.isFile()) files.push({ name: e.name, size: fs.statSync(path.join(abs, e.name)).size });
-    } catch { /* unreadable entry */ }
+      else if (e.isFile())
+        files.push({ name: e.name, size: fs.statSync(path.join(abs, e.name)).size });
+    } catch {
+      /* unreadable entry */
+    }
   }
   return { path: rel || "/", folders, files };
 }
@@ -720,7 +760,9 @@ function localTree(rel, limit = 200) {
     let entries = [];
     try {
       entries = fs.readdirSync(safeJoin(sharedRoot, relDir), { withFileTypes: true });
-    } catch { return; }
+    } catch {
+      return;
+    }
     for (const e of entries) {
       if (out.length >= limit) return;
       if (e.name.startsWith(".")) continue;
@@ -734,7 +776,6 @@ function localTree(rel, limit = 200) {
 }
 
 function localSearch(rel, query, limit = 80) {
-
   const q = String(query || "").toLowerCase();
   const out = [];
   const walk = (relDir, depth) => {
@@ -742,7 +783,9 @@ function localSearch(rel, query, limit = 80) {
     let entries = [];
     try {
       entries = fs.readdirSync(safeJoin(sharedRoot, relDir), { withFileTypes: true });
-    } catch { return; }
+    } catch {
+      return;
+    }
     for (const e of entries) {
       if (out.length >= limit) return;
       if (e.name.startsWith(".")) continue;
@@ -763,7 +806,12 @@ function localRead({ path: rel, offset = 0, length = 262144 }) {
   const buf = Buffer.alloc(Math.min(length, Math.max(0, stat.size - offset)));
   if (buf.length) fs.readSync(fd, buf, 0, buf.length, offset);
   fs.closeSync(fd);
-  return { size: stat.size, offset, chunk: buf.toString("base64"), eof: offset + buf.length >= stat.size };
+  return {
+    size: stat.size,
+    offset,
+    chunk: buf.toString("base64"),
+    eof: offset + buf.length >= stat.size,
+  };
 }
 
 // Write a base64 chunk from the dashboard into the shared folder.
@@ -783,8 +831,6 @@ function localMkdir({ path: rel }) {
   fs.mkdirSync(abs, { recursive: true });
   return { ok: true, path: rel };
 }
-
-
 
 function handleRpc(call) {
   const p = call.params || {};
@@ -835,7 +881,6 @@ function handleRpc(call) {
       return { text };
     }
     case "exit": {
-
       setTimeout(() => {
         say("");
         info("session ended from the dashboard — goodbye");
@@ -844,7 +889,8 @@ function handleRpc(call) {
       return { ok: true };
     }
     case "exec": {
-      if (!shellEnabled) throw new Error("Remote shell not enabled on this PC. Start the CLI with --shell.");
+      if (!shellEnabled)
+        throw new Error("Remote shell not enabled on this PC. Start the CLI with --shell.");
       // Streaming is handled in serveRequests so output can arrive live.
       return { ok: true };
     }
@@ -852,7 +898,6 @@ function handleRpc(call) {
       throw new Error("Unsupported request");
   }
 }
-
 
 async function runExecRpc(call) {
   const command = call.params?.command;
@@ -867,7 +912,11 @@ function runLocalCommand(command, callId = null) {
   return new Promise((resolve) => {
     if (!shellEnabled) {
       err("Remote shell not enabled on this PC. Start the CLI with --shell.");
-      if (callId) api("rpcRespond", { callId, error: "Remote shell not enabled on this PC. Start the CLI with --shell." }).catch(() => {});
+      if (callId)
+        api("rpcRespond", {
+          callId,
+          error: "Remote shell not enabled on this PC. Start the CLI with --shell.",
+        }).catch(() => {});
       resolve();
       return;
     }
@@ -887,12 +936,12 @@ function runLocalCommand(command, callId = null) {
     });
     child.on("close", (code) => {
       if (code !== 0) info(`exit code ${code}`);
-      if (callId) api("rpcRespond", { callId, result: { code: code ?? 0, done: true } }).catch(() => {});
+      if (callId)
+        api("rpcRespond", { callId, result: { code: code ?? 0, done: true } }).catch(() => {});
       resolve();
     });
   });
 }
-
 
 async function serveRequests() {
   const { calls } = await api("rpcPoll");
@@ -908,7 +957,6 @@ async function serveRequests() {
     }
   }
 }
-
 
 async function remoteCall(device, method, params = {}) {
   const r = await api("rpc", { target: device, method, params });
@@ -997,7 +1045,9 @@ async function cmdSend(cwd, args) {
   }
   const file = rest.replace(/^"|"$/g, "").trim();
   if (!file)
-    return err('Usage: send <file> [to <device>] [in <folder>]   e.g. send notes.pdf to Laptop in /homework');
+    return err(
+      "Usage: send <file> [to <device>] [in <folder>]   e.g. send notes.pdf to Laptop in /homework",
+    );
   if (!folder.startsWith("/")) folder = resolvePath(cwd, folder);
 
   const abs = path.resolve(process.cwd(), file);
@@ -1034,7 +1084,6 @@ async function cmdSend(cwd, args) {
   if (!to) ok(`shared in ${folder} — anyone in the room can get it`);
   else if (done.direct) ok(`delivered to ${to}, filed under ${folder}`);
   else ok(`${to} is offline — saved in ${folder}, it will arrive when they connect`);
-
 }
 
 async function cmdGet(cwd, args) {
@@ -1055,7 +1104,10 @@ async function downloadTransfer(id, fileName, folderPath) {
   let baseDir = INBOX;
   if (folderPath) {
     const candidate = path.resolve(sharedRoot, "." + folderPath.replace(/\\/g, "/"));
-    if (candidate.startsWith(path.resolve(sharedRoot) + path.sep) || candidate === path.resolve(sharedRoot)) {
+    if (
+      candidate.startsWith(path.resolve(sharedRoot) + path.sep) ||
+      candidate === path.resolve(sharedRoot)
+    ) {
       baseDir = candidate;
     }
   }
@@ -1072,7 +1124,6 @@ async function downloadTransfer(id, fileName, folderPath) {
   return dest;
 }
 
-
 async function cmdTasks() {
   const { sent, received } = await api("tasks");
   say(`${c.bold}Sent${c.reset}`);
@@ -1084,7 +1135,9 @@ async function cmdTasks() {
         : t.status === "pending"
           ? `${c.yellow}waiting for device${c.reset}`
           : `${c.cyan}shared${c.reset}`;
-    say(`  ${t.file_name} ${c.dim}${humanSize(t.size_bytes)} -> ${t.to_name ?? "everyone"}${c.reset}  ${label}`);
+    say(
+      `  ${t.file_name} ${c.dim}${humanSize(t.size_bytes)} -> ${t.to_name ?? "everyone"}${c.reset}  ${label}`,
+    );
   }
   say(`${c.bold}Received${c.reset}`);
   if (!received.length) info("  nothing received yet");
@@ -1130,8 +1183,6 @@ ${c.bold}Remote shell${c.reset}
 ${c.dim}Files can never be deleted from a room.${c.reset}
 `);
 }
-
-
 
 /* ------------------------------------------------------------------- repl  */
 
@@ -1186,7 +1237,6 @@ async function main() {
   else if (shellEnabled) info("remote shell enabled — the dashboard can run commands on this PC");
   help();
 
-
   let cwd = "/";
   let remote = null; // { name, path } when browsing another PC live
   const seen = new Set();
@@ -1197,7 +1247,6 @@ async function main() {
   startClipboardMonitor();
 
   const rpcLoop = setInterval(() => {
-
     serveRequests().catch(() => {});
   }, 2000);
 
@@ -1217,7 +1266,6 @@ async function main() {
       /* keep trying */
     }
   }, 6000);
-
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const prompt = () => {
@@ -1250,7 +1298,7 @@ async function main() {
       if (lower === "cd" && arg.startsWith("@")) {
         const parsed = parseCdAt(arg);
         if (!parsed) {
-          err("Usage: cd @<device> or cd @\"<device name>\"");
+          err('Usage: cd @<device> or cd @"<device name>"');
           prompt();
           return;
         }
@@ -1279,7 +1327,15 @@ async function main() {
       }
       if (remote) {
         // Admin shell pass-through: unknown commands become native commands.
-        if (adminMode && lower !== "" && lower !== "exit" && lower !== "quit" && lower !== "help" && lower !== "pwd" && lower !== "admin") {
+        if (
+          adminMode &&
+          lower !== "" &&
+          lower !== "exit" &&
+          lower !== "quit" &&
+          lower !== "help" &&
+          lower !== "pwd" &&
+          lower !== "admin"
+        ) {
           if (isCloudDeletionCommand(line)) {
             err("Blocked: deletion commands targeting room cloud storage are not allowed.");
           } else {
@@ -1337,7 +1393,9 @@ async function main() {
             }
             break;
           default:
-            err(`${lower} is not available while browsing ${remote.name} — use ls, cd, search, get, admin, cd @`);
+            err(
+              `${lower} is not available while browsing ${remote.name} — use ls, cd, search, get, admin, cd @`,
+            );
         }
         prompt();
         return;
@@ -1392,7 +1450,6 @@ async function main() {
     }
     prompt();
   }
-
 
   rl.on("close", () => {
     // Let any queued commands (e.g. piped input) finish before quitting.

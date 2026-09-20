@@ -19,8 +19,9 @@
  */
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue",
+    ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
 
@@ -324,5 +325,3 @@
   opacity: 1;
   transform: scale(1);
 }
-
-

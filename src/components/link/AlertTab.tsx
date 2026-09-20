@@ -39,7 +39,10 @@ export function AlertTab({ session, target }: { session: Session; target: string
     setBusy(true);
     setNote(null);
     try {
-      await sendControl(session, target, "alert", { title: title.trim() || "Message", content: content.trim() });
+      await sendControl(session, target, "alert", {
+        title: title.trim() || "Message",
+        content: content.trim(),
+      });
       setNote(`Alert sent to ${target}`);
       addAudit("Alert", `Sent "${title.trim() || "Message"}" to ${target}`, "SUCCESS", target);
       setTitle("");
@@ -56,7 +59,11 @@ export function AlertTab({ session, target }: { session: Session; target: string
     setWaiting(true);
     setResult(null);
     setNote(null);
-    const command = buildQuestionCommand(title.trim() || "Confirmation", content.trim(), yesCommand);
+    const command = buildQuestionCommand(
+      title.trim() || "Confirmation",
+      content.trim(),
+      yesCommand,
+    );
     try {
       const { callId } = await remoteExecStart(session, target, command);
       let status = "pending";
@@ -124,7 +131,9 @@ export function AlertTab({ session, target }: { session: Session; target: string
       </div>
 
       <label className="mb-3 block">
-        <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">Title</span>
+        <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
+          Title
+        </span>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -140,7 +149,9 @@ export function AlertTab({ session, target }: { session: Session; target: string
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
-          placeholder={mode === "direct" ? "What do you want them to see?" : "Do you want to proceed?"}
+          placeholder={
+            mode === "direct" ? "What do you want them to see?" : "Do you want to proceed?"
+          }
           className="w-full resize-none rounded-xl border border-border bg-cardhover p-3 text-sm text-foreground outline-none focus:border-primary"
         />
       </label>
@@ -179,8 +190,14 @@ export function AlertTab({ session, target }: { session: Session; target: string
               : "border-border bg-cardhover text-foreground"
           }`}
         >
-          <span className="font-bold">{target} clicked: {result.answer}</span>
-          {result.output && <p className="mt-1.5 whitespace-pre-wrap font-mono text-[11px] opacity-80">{result.output}</p>}
+          <span className="font-bold">
+            {target} clicked: {result.answer}
+          </span>
+          {result.output && (
+            <p className="mt-1.5 whitespace-pre-wrap font-mono text-[11px] opacity-80">
+              {result.output}
+            </p>
+          )}
         </div>
       )}
 

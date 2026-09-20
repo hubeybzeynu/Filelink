@@ -6,7 +6,6 @@ import {
   CornerLeftUp,
   Download,
   Eye,
-
   File as FileIcon,
   FileArchive,
   FileAudio,
@@ -18,7 +17,6 @@ import {
   Folder,
   FolderPlus,
   FolderTree,
-
   HardDrive,
   Home,
   LayoutGrid,
@@ -30,7 +28,6 @@ import {
   PenLine,
   RefreshCw,
   Scissors,
-  
   Send,
   Trash2,
   Upload,
@@ -38,7 +35,11 @@ import {
   X,
 } from "lucide-react";
 import { DestinationDialog, type Destination } from "@/components/link/DestinationDialog";
-import { DevicePickerButton, DevicePickerDialog, AvailableDevicesBox } from "@/components/link/DevicePicker";
+import {
+  DevicePickerButton,
+  DevicePickerDialog,
+  AvailableDevicesBox,
+} from "@/components/link/DevicePicker";
 import { UploadSheet } from "@/components/link/UploadSheet";
 import { PasswordDialog } from "@/components/link/PasswordDialog";
 import {
@@ -62,7 +63,6 @@ import {
   remoteDownload,
   remoteFetchBytes,
   remoteUploadFile,
-
   removeItems,
   renameItem,
   resolvePath,
@@ -118,11 +118,10 @@ export function FileBrowser({
   onChanged: () => void;
   searchQuery?: string;
 }) {
-
   const [path, setPath] = useState("/");
   const [items, setItems] = useState<Item[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  
+
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cached, setCached] = useState<number | null>(null);
@@ -174,7 +173,6 @@ export function FileBrowser({
     pending.current = run;
     setLockReason(reason);
   }
-
 
   const isRoom = !source;
   const device = devices.find((d) => d.name === source);
@@ -338,11 +336,7 @@ export function FileBrowser({
       out.push({ name: `${prefix}${f.name}`, bytes: new Uint8Array(await blob.arrayBuffer()) });
     }
     for (const sub of folders) {
-      await walkFolder(
-        `${dir === "/" ? "" : dir}/${sub.name}`,
-        `${prefix}${sub.name}/`,
-        out,
-      );
+      await walkFolder(`${dir === "/" ? "" : dir}/${sub.name}`, `${prefix}${sub.name}/`, out);
     }
   }
 
@@ -416,7 +410,6 @@ export function FileBrowser({
       await load();
     });
 
-
   const sendTo = (dest: Destination) =>
     act("sending…", async () => {
       const target = dest.device || null;
@@ -439,12 +432,18 @@ export function FileBrowser({
   async function onUpload(files: File[]) {
     if (!files.length) return;
     const batch =
-      files.length > 1 ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, total: files.length } : undefined;
+      files.length > 1
+        ? { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, total: files.length }
+        : undefined;
     await act("uploading…", async () => {
       let i = 0;
       for (const file of files) {
         i++;
-        setStatus(files.length > 1 ? `uploading ${i} of ${files.length}: ${file.name}` : `uploading ${file.name}…`);
+        setStatus(
+          files.length > 1
+            ? `uploading ${i} of ${files.length}: ${file.name}`
+            : `uploading ${file.name}…`,
+        );
         if (isRoom) await uploadFile(session, file, path, null, batch);
         // On a live PC the file is written straight into the folder you're in.
         else await remoteUploadFile(session, source, path, file, batch);
@@ -459,12 +458,12 @@ export function FileBrowser({
     if (!name) return;
     await act(`creating ${name}…`, async () => {
       if (isRoom) await api("mkdir", { path, name }, session);
-      else await remoteCall(session, source, "mkdir", { path: `${path === "/" ? "" : path}/${name}` });
+      else
+        await remoteCall(session, source, "mkdir", { path: `${path === "/" ? "" : path}/${name}` });
       onChanged();
       await load();
     });
   }
-
 
   function isTextFile(name: string) {
     return /\.(txt|md|json|js|mjs|cjs|ts|tsx|jsx|py|java|kt|c|h|cpp|cs|go|rs|rb|php|swift|html|css|yml|yaml|sh|bat|sql|log|cfg|ini|xml|csv)$/i.test(
@@ -532,7 +531,6 @@ export function FileBrowser({
   }
 
   return (
-
     <section
       className={
         fullscreen
@@ -618,7 +616,6 @@ export function FileBrowser({
                 </button>
               </>
             )}
-
           </div>
         </div>
 
@@ -671,7 +668,6 @@ export function FileBrowser({
             </span>
           )}
         </div>
-
       </div>
 
       {/* items — pull down on a phone to refresh */}
@@ -884,7 +880,6 @@ export function FileBrowser({
         </div>
       )}
 
-
       <UploadSheet
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
@@ -940,7 +935,10 @@ export function FileBrowser({
         onConfirm={sendTo}
       />
 
-      <Dialog open={preview.open} onOpenChange={(v) => !v && setPreview((p) => ({ ...p, open: false }))}>
+      <Dialog
+        open={preview.open}
+        onOpenChange={(v) => !v && setPreview((p) => ({ ...p, open: false }))}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="truncate">{preview.item?.name ?? "Preview"}</DialogTitle>
@@ -950,7 +948,11 @@ export function FileBrowser({
           </DialogHeader>
           <div className="max-h-[60vh] overflow-auto rounded-md border border-border bg-background p-3">
             {preview.kind === "image" && preview.url && (
-              <img src={preview.url} alt={preview.item?.name ?? "preview"} className="mx-auto max-h-full max-w-full" />
+              <img
+                src={preview.url}
+                alt={preview.item?.name ?? "preview"}
+                className="mx-auto max-h-full max-w-full"
+              />
             )}
             {preview.kind === "text" && preview.text !== null && (
               <pre className="whitespace-pre-wrap break-words font-mono text-xs text-foreground">
@@ -958,13 +960,21 @@ export function FileBrowser({
               </pre>
             )}
             {preview.kind === "pdf" && preview.url && (
-              <iframe src={preview.url} title={preview.item?.name ?? "pdf"} className="h-[50vh] w-full" />
+              <iframe
+                src={preview.url}
+                title={preview.item?.name ?? "pdf"}
+                className="h-[50vh] w-full"
+              />
             )}
             {preview.kind === "audio" && preview.url && (
               <audio src={preview.url} controls className="w-full" />
             )}
             {preview.kind === "video" && preview.url && (
-              <video src={preview.url} controls className="mx-auto max-h-[55vh] w-full rounded-lg bg-black" />
+              <video
+                src={preview.url}
+                controls
+                className="mx-auto max-h-[55vh] w-full rounded-lg bg-black"
+              />
             )}
             {preview.kind === "binary" && (
               <p className="text-center text-sm text-muted-foreground">
@@ -1005,7 +1015,13 @@ export function FileBrowser({
 /** Turns a flat {path,dir}[] list into a real collapsible tree, grouped by
  * path segments — the folder/room "tree" view used to just print every full
  * path as a flat, indented list of raw strings. This actually nests. */
-function TreeView({ entries, onOpenPath }: { entries: { path: string; dir: boolean }[]; onOpenPath: (p: string) => void }) {
+function TreeView({
+  entries,
+  onOpenPath,
+}: {
+  entries: { path: string; dir: boolean }[];
+  onOpenPath: (p: string) => void;
+}) {
   type Node = { name: string; path: string; dir: boolean; children: Map<string, Node> };
   const root = useMemo(() => {
     const top: Node = { name: "", path: "/", dir: true, children: new Map() };
@@ -1035,7 +1051,15 @@ function TreeNode({
   depth,
   onOpenPath,
 }: {
-  node: { name: string; path: string; dir: boolean; children: Map<string, { name: string; path: string; dir: boolean; children: Map<string, unknown> }> };
+  node: {
+    name: string;
+    path: string;
+    dir: boolean;
+    children: Map<
+      string,
+      { name: string; path: string; dir: boolean; children: Map<string, unknown> }
+    >;
+  };
   depth: number;
   onOpenPath: (p: string) => void;
 }) {
@@ -1063,7 +1087,9 @@ function TreeNode({
         style={{ paddingLeft: `${(depth - 1) * 16 + 4}px` }}
       >
         {node.dir ? (
-          <ChevronRight className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+          <ChevronRight
+            className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
+          />
         ) : (
           <span className="inline-block size-3.5 shrink-0" />
         )}
@@ -1097,7 +1123,6 @@ function TreeNode({
     </div>
   );
 }
-
 
 function ToolButton({
   onClick,

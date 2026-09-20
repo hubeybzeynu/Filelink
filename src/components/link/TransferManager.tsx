@@ -1,11 +1,6 @@
 import { useSyncExternalStore, useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, ChevronDown, ChevronUp, X } from "lucide-react";
-import {
-  getJobs,
-  humanSize,
-  humanSpeed,
-  subscribeJobs,
-} from "@/lib/linkClient";
+import { getJobs, humanSize, humanSpeed, subscribeJobs } from "@/lib/linkClient";
 
 function useJobs() {
   return useSyncExternalStore(subscribeJobs, getJobs, getJobs);
@@ -33,7 +28,11 @@ export function TransferManager({
 
   const totalLoaded = active.reduce((n, j) => n + j.loaded, 0);
   const totalSize = active.reduce((n, j) => n + (j.total || 0), 0);
-  const overall = totalSize ? Math.min(100, (totalLoaded / totalSize) * 100) : active.length ? 8 : 100;
+  const overall = totalSize
+    ? Math.min(100, (totalLoaded / totalSize) * 100)
+    : active.length
+      ? 8
+      : 100;
   const speed = active.reduce((n, j) => n + j.bps, 0);
 
   // The most recent batch (a single multi-file upload/send) — used to show
@@ -65,7 +64,9 @@ export function TransferManager({
                   : "All transfers finished"}
             </div>
             <div className="truncate font-mono text-[11px] text-muted-foreground">
-              {active.length ? `${Math.round(overall)}% · ${humanSpeed(speed)}` : `${jobs.length} in history`}
+              {active.length
+                ? `${Math.round(overall)}% · ${humanSpeed(speed)}`
+                : `${jobs.length} in history`}
             </div>
           </div>
           <button
@@ -91,9 +92,7 @@ export function TransferManager({
           />
         </div>
 
-        {!collapsed && (
-          <TransferJobList jobs={jobs} />
-        )}
+        {!collapsed && <TransferJobList jobs={jobs} />}
       </div>
     </div>
   );
@@ -139,7 +138,11 @@ function TransferJobList({ jobs }: { jobs: ReturnType<typeof getJobs> }) {
             <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
               {humanSize(j.loaded)}
               {j.total ? ` / ${humanSize(j.total)}` : ""} ·{" "}
-              {j.status === "active" ? humanSpeed(j.bps) : j.status === "done" ? "finished" : j.note}
+              {j.status === "active"
+                ? humanSpeed(j.bps)
+                : j.status === "done"
+                  ? "finished"
+                  : j.note}
               {j.note && j.status === "active" ? ` · ${j.note}` : ""}
             </p>
           </li>

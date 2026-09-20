@@ -68,16 +68,44 @@ const AGENT_ACTIONS = [
   { key: "removeAgent", label: "Stop Agent", icon: Trash2, danger: true },
 ] as const;
 
-const TABS = ["Power", "Agent", "Copy/Paste", "Open/Link", "Alert", "Cursor", "Display", "Audit"] as const;
+const TABS = [
+  "Power",
+  "Agent",
+  "Copy/Paste",
+  "Open/Link",
+  "Alert",
+  "Cursor",
+  "Display",
+  "Audit",
+] as const;
 type ControlTabKey = (typeof TABS)[number];
 
-const TAB_META: Record<ControlTabKey, { label: string; description: string; Icon: React.ElementType }> = {
+const TAB_META: Record<
+  ControlTabKey,
+  { label: string; description: string; Icon: React.ElementType }
+> = {
   Power: { label: "Power", description: "Shutdown, restart, sleep & schedule", Icon: Power },
   Agent: { label: "Agent", description: "Restart, uninstall & DNS settings", Icon: RefreshCw },
-  "Copy/Paste": { label: "Copy / Paste", description: "Send clipboard to the target PC", Icon: ClipboardIcon },
-  "Open/Link": { label: "Open File / Link", description: "Open a URL, run a path, send & open a file", Icon: LinkIcon },
-  Alert: { label: "Alert", description: "Pop up a message or a yes/no question", Icon: MessageSquareWarning },
-  Cursor: { label: "Cursor", description: "Move the mouse and click on the target PC", Icon: MousePointer2 },
+  "Copy/Paste": {
+    label: "Copy / Paste",
+    description: "Send clipboard to the target PC",
+    Icon: ClipboardIcon,
+  },
+  "Open/Link": {
+    label: "Open File / Link",
+    description: "Open a URL, run a path, send & open a file",
+    Icon: LinkIcon,
+  },
+  Alert: {
+    label: "Alert",
+    description: "Pop up a message or a yes/no question",
+    Icon: MessageSquareWarning,
+  },
+  Cursor: {
+    label: "Cursor",
+    description: "Move the mouse and click on the target PC",
+    Icon: MousePointer2,
+  },
   Display: { label: "Display", description: "Screen capture & camera", Icon: MonitorPlay },
   Audit: { label: "Audit", description: "History of remote actions", Icon: FileClock },
 };
@@ -127,7 +155,11 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
   const allSelected = onlineDevices.length > 0 && targets.length === onlineDevices.length;
 
   useEffect(() => {
-    if (tab === null && typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+    if (
+      tab === null &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 768px)").matches
+    ) {
       setTab("Power");
     }
   }, [tab]);
@@ -176,7 +208,12 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
       addAudit(isPower ? "Power" : "System", `${command} sent`, "SUCCESS", deviceName || target);
     } catch (e) {
       setNote(`Failed: ${(e as Error).message}`);
-      addAudit(isPower ? "Power" : "System", `${command} failed: ${(e as Error).message}`, "ERROR", deviceName || target);
+      addAudit(
+        isPower ? "Power" : "System",
+        `${command} failed: ${(e as Error).message}`,
+        "ERROR",
+        deviceName || target,
+      );
       throw e;
     } finally {
       setBusy(null);
@@ -219,7 +256,9 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold leading-tight text-foreground md:text-2xl">Control Center</h2>
+          <h2 className="text-base font-bold leading-tight text-foreground md:text-2xl">
+            Control Center
+          </h2>
           <span className="font-mono text-xs uppercase tracking-widest text-primary">
             Remote Host Management &amp; Power
           </span>
@@ -298,8 +337,8 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
 
         {targets.length > 1 && (
           <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-            Power and agent actions run on all {targets.length} selected PCs. Clipboard and display use{" "}
-            <span className="text-foreground">{target}</span>.
+            Power and agent actions run on all {targets.length} selected PCs. Clipboard and display
+            use <span className="text-foreground">{target}</span>.
           </p>
         )}
       </div>
@@ -371,7 +410,11 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
                       disabled={!targets.length}
                       onClick={() => {
                         if (isModal) {
-                          setPowerAction({ key: a.key as "shutdown" | "restart", label: a.label, icon: a.icon });
+                          setPowerAction({
+                            key: a.key as "shutdown" | "restart",
+                            label: a.label,
+                            icon: a.icon,
+                          });
                         } else {
                           void executeAll(a.key);
                         }
@@ -380,11 +423,20 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
                     >
                       {activeSchedule && (
                         <span className="absolute right-2 top-2 rounded-full bg-warning/15 px-2 py-0.5 font-mono text-[10px] font-bold text-warning">
-                          {fmtLeft(Math.max(0, Math.floor((new Date(activeSchedule.fire_at).getTime() - nowTick) / 1000)))}
+                          {fmtLeft(
+                            Math.max(
+                              0,
+                              Math.floor(
+                                (new Date(activeSchedule.fire_at).getTime() - nowTick) / 1000,
+                              ),
+                            ),
+                          )}
                         </span>
                       )}
                       <a.icon className={`size-8 ${toneText[a.tone]}`} />
-                      <span className="text-sm font-bold text-foreground md:text-base">{a.label}</span>
+                      <span className="text-sm font-bold text-foreground md:text-base">
+                        {a.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -400,7 +452,10 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
                 ) : (
                   <div className="mt-3 flex flex-col gap-2">
                     {schedules.map((s) => {
-                      const secsLeft = Math.max(0, Math.floor((new Date(s.fire_at).getTime() - nowTick) / 1000));
+                      const secsLeft = Math.max(
+                        0,
+                        Math.floor((new Date(s.fire_at).getTime() - nowTick) / 1000),
+                      );
                       const spec = POWER_MODAL_ACTIONS.find((m) => m.key === s.action)!;
                       return (
                         <div
@@ -429,9 +484,19 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
                               try {
                                 await cancelSchedule(session, s.id);
                                 await sendControl(session, s.device_name, "cancelShutdown");
-                                addAudit("Power", `${s.action} schedule cancelled`, "SUCCESS", s.device_name);
+                                addAudit(
+                                  "Power",
+                                  `${s.action} schedule cancelled`,
+                                  "SUCCESS",
+                                  s.device_name,
+                                );
                               } catch (e) {
-                                addAudit("Power", `Cancel failed: ${(e as Error).message}`, "ERROR", s.device_name);
+                                addAudit(
+                                  "Power",
+                                  `Cancel failed: ${(e as Error).message}`,
+                                  "ERROR",
+                                  s.device_name,
+                                );
                               } finally {
                                 void refreshSchedules();
                               }
@@ -464,7 +529,9 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
           {tab === "Open/Link" && <OpenFileLinkTab session={session} target={target} />}
           {tab === "Alert" && <AlertTab session={session} target={target} />}
           {tab === "Cursor" && <CursorTab session={session} target={target} />}
-          {tab === "Display" && <DisplayHub session={session} target={target} onPick={() => setPickerOpen(true)} />}
+          {tab === "Display" && (
+            <DisplayHub session={session} target={target} onPick={() => setPickerOpen(true)} />
+          )}
           {tab === "Audit" && <AuditTrail />}
 
           {note && (
@@ -501,7 +568,12 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
           for (const device of targets) {
             await sendControl(session, device, powerAction!.key, { seconds: secs });
             await schedulePower(session, device, powerAction!.key, fireAtIso);
-            addAudit("Power", `${powerAction!.key} scheduled at ${new Date(fireAtIso).toLocaleTimeString()}`, "SUCCESS", device);
+            addAudit(
+              "Power",
+              `${powerAction!.key} scheduled at ${new Date(fireAtIso).toLocaleTimeString()}`,
+              "SUCCESS",
+              device,
+            );
           }
           await refreshSchedules();
         }}
@@ -557,7 +629,6 @@ export function ControlTab({ session, devices }: { session: Session; devices: De
   );
 }
 
-
 function AgentPanel({
   target,
   targetCount,
@@ -571,7 +642,6 @@ function AgentPanel({
   onRun: (cmd: string, extra?: Record<string, unknown>) => Promise<void> | void;
   onConfirmStop: () => void;
 }) {
-
   const [dnsInterface, setDnsInterface] = useState("Ethernet");
   const [primaryDns, setPrimaryDns] = useState("1.1.1.1");
   const [secondaryDns, setSecondaryDns] = useState("1.0.0.1");
@@ -587,7 +657,6 @@ function AgentPanel({
             ? `Applies to ${target}.`
             : "Select at least one PC first."}
       </p>
-
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {AGENT_ACTIONS.map((a) => (
@@ -628,13 +697,30 @@ function AgentPanel({
           </div>
           <div>
             <h4 className="text-sm font-bold text-foreground">DNS Settings</h4>
-            <p className="text-[11px] text-muted-foreground">View or change the DNS servers on the target PC.</p>
+            <p className="text-[11px] text-muted-foreground">
+              View or change the DNS servers on the target PC.
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Input label="Interface" value={dnsInterface} onChange={setDnsInterface} placeholder="Ethernet" />
-          <Input label="Primary DNS" value={primaryDns} onChange={setPrimaryDns} placeholder="1.1.1.1" />
-          <Input label="Secondary DNS" value={secondaryDns} onChange={setSecondaryDns} placeholder="1.0.0.1" />
+          <Input
+            label="Interface"
+            value={dnsInterface}
+            onChange={setDnsInterface}
+            placeholder="Ethernet"
+          />
+          <Input
+            label="Primary DNS"
+            value={primaryDns}
+            onChange={setPrimaryDns}
+            placeholder="1.1.1.1"
+          />
+          <Input
+            label="Secondary DNS"
+            value={secondaryDns}
+            onChange={setSecondaryDns}
+            placeholder="1.0.0.1"
+          />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button

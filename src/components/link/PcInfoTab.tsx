@@ -1,7 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, CheckCircle2, Cpu, Download, HardDrive, Loader2, Monitor, Plus, RefreshCw, Server } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Cpu,
+  Download,
+  HardDrive,
+  Loader2,
+  Monitor,
+  Plus,
+  RefreshCw,
+  Server,
+} from "lucide-react";
 import { BackgroundAgentDownload } from "@/components/link/BackgroundAgentDownload";
-import { humanSize, remoteSysInfo, remoteExecStart, remoteExecStatus, getInstallStatus, type DeviceInfo, type InstallStatus, type Session } from "@/lib/linkClient";
+import {
+  humanSize,
+  remoteSysInfo,
+  remoteExecStart,
+  remoteExecStatus,
+  getInstallStatus,
+  type DeviceInfo,
+  type InstallStatus,
+  type Session,
+} from "@/lib/linkClient";
 import { downloadAgentInstaller } from "@/lib/agentScript";
 
 type SysInfo = {
@@ -37,7 +58,6 @@ export function PcInfoTab({ session, devices }: { session: Session; devices: Dev
   const [info, setInfo] = useState<SysInfo>({});
   const [loading, setLoading] = useState(false);
   const [installedTargets, setInstalledTargets] = useState<string[]>([]);
-
 
   const onlineTargets = devices.filter((d) => d.online);
   const selected = devices.find((d) => d.name === target);
@@ -121,7 +141,11 @@ export function PcInfoTab({ session, devices }: { session: Session; devices: Dev
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <InfoCard icon={Monitor} label="Hostname" value={info.hostname ?? "—"} />
-            <InfoCard icon={Server} label="OS" value={osBadge(info.os ?? selected?.osInfo ?? undefined)} />
+            <InfoCard
+              icon={Server}
+              label="OS"
+              value={osBadge(info.os ?? selected?.osInfo ?? undefined)}
+            />
             <InfoCard icon={Cpu} label="CPU" value={info.cpu ?? "—"} />
             <InfoCard
               icon={HardDrive}
@@ -145,7 +169,9 @@ export function PcInfoTab({ session, devices }: { session: Session; devices: Dev
                   return (
                     <div key={d.letter} className="rounded-lg border border-border p-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm font-medium text-foreground">{d.letter}</span>
+                        <span className="font-mono text-sm font-medium text-foreground">
+                          {d.letter}
+                        </span>
                         <span className="text-[11px] text-muted-foreground">{pct}% used</span>
                       </div>
                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -166,7 +192,9 @@ export function PcInfoTab({ session, devices }: { session: Session; devices: Dev
 
           {info.network && info.network.length > 0 && (
             <section className="rounded-xl border border-border bg-card p-4">
-              <h3 className="font-display text-sm font-semibold text-foreground">Network adapters</h3>
+              <h3 className="font-display text-sm font-semibold text-foreground">
+                Network adapters
+              </h3>
               <div className="mt-3 space-y-2">
                 {info.network.map((n, i) => (
                   <div
@@ -188,7 +216,15 @@ export function PcInfoTab({ session, devices }: { session: Session; devices: Dev
   );
 }
 
-function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -200,7 +236,8 @@ function InfoCard({ icon: Icon, label, value }: { icon: React.ElementType; label
   );
 }
 
-type InstallStage = null | "warn" | "requesting" | "accepted" | "adding" | "verifying" | "denied" | "added";
+type InstallStage =
+  null | "warn" | "requesting" | "accepted" | "adding" | "verifying" | "denied" | "added";
 
 function AgentCompatibility({
   session,
@@ -223,7 +260,8 @@ function AgentCompatibility({
   const [startedAt, setStartedAt] = useState(0);
   const [tick, setTick] = useState(0);
 
-  const waiting = stage === "requesting" || stage === "accepted" || stage === "adding" || stage === "verifying";
+  const waiting =
+    stage === "requesting" || stage === "accepted" || stage === "adding" || stage === "verifying";
 
   // Poll the real progress the installer script itself reports as it runs.
   useEffect(() => {
@@ -265,7 +303,9 @@ function AgentCompatibility({
     }
 
     if (stage === "requesting") {
-      const readyToAdvance = elevate ? install?.stage === "approved" || install?.stage === "installing" : install?.stage === "installing";
+      const readyToAdvance = elevate
+        ? install?.stage === "approved" || install?.stage === "installing"
+        : install?.stage === "installing";
       if (readyToAdvance) {
         setStage("accepted");
         const t = window.setTimeout(() => setStage((s) => (s === "accepted" ? "adding" : s)), 900);
@@ -301,7 +341,9 @@ function AgentCompatibility({
 
   const [checkStarted, setCheckStarted] = useState(false);
   const [resolvedCount, setResolvedCount] = useState(0);
-  const [checkResults, setCheckResults] = useState<{ label: string; pass: boolean; note: string }[]>([]);
+  const [checkResults, setCheckResults] = useState<
+    { label: string; pass: boolean; note: string }[]
+  >([]);
 
   const isReachable = !!selected?.online;
 
@@ -341,7 +383,8 @@ function AgentCompatibility({
     if (index === 1) {
       const label = "Startup folder writable";
       const path = "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup";
-      if (!isReachable) return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
+      if (!isReachable)
+        return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
       const ok = await probe(
         `powershell -NoProfile -Command "try { $p = Join-Path $env:APPDATA 'Microsoft\\Windows\\Start Menu\\Programs\\Startup\\flcheck.tmp'; New-Item -Path $p -ItemType File -Force | Out-Null; Remove-Item $p; Write-Output FL_OK } catch { Write-Output FL_FAIL }"`,
       );
@@ -351,16 +394,25 @@ function AgentCompatibility({
       const label = "PowerShell available";
       if (!isReachable) {
         const guess = /win|server/.test(os) || !os;
-        return { label, pass: guess, note: guess ? "PowerShell 5.1+ ships with Windows (estimated)" : "Unknown OS" };
+        return {
+          label,
+          pass: guess,
+          note: guess ? "PowerShell 5.1+ ships with Windows (estimated)" : "Unknown OS",
+        };
       }
       const ok = await probe(`where powershell`);
-      return { label, pass: ok, note: ok ? "PowerShell 5.1+ ships with Windows" : "PowerShell not found on this PC" };
+      return {
+        label,
+        pass: ok,
+        note: ok ? "PowerShell 5.1+ ships with Windows" : "PowerShell not found on this PC",
+      };
     }
     // index 3
     {
       const label = "Roaming AppData available";
       const path = "%APPDATA%\\FileLinkAgent";
-      if (!isReachable) return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
+      if (!isReachable)
+        return { label, pass: true, note: `${path} (estimated — PC not connected yet)` };
       const ok = await probe(
         `powershell -NoProfile -Command "if (Test-Path $env:APPDATA) { Write-Output FL_OK } else { Write-Output FL_FAIL }"`,
       );
@@ -411,7 +463,6 @@ function AgentCompatibility({
     });
   }
 
-
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -449,22 +500,46 @@ function AgentCompatibility({
         <>
           <ul className="grid gap-2 sm:grid-cols-2">
             {CHECK_LABELS.map((label, i) => {
-              const state = i < resolvedCount ? (checks[i].pass ? "pass" : "fail") : i === resolvedCount ? "checking" : "pending";
-              const note = i < resolvedCount ? checks[i].note : state === "checking" ? "analyzing…" : "waiting…";
+              const state =
+                i < resolvedCount
+                  ? checks[i].pass
+                    ? "pass"
+                    : "fail"
+                  : i === resolvedCount
+                    ? "checking"
+                    : "pending";
+              const note =
+                i < resolvedCount
+                  ? checks[i].note
+                  : state === "checking"
+                    ? "analyzing…"
+                    : "waiting…";
               return (
                 <li
                   key={label}
                   className={`flex items-start gap-2 rounded-xl border p-3 transition-colors ${
-                    state === "pending" ? "border-border/40 bg-cardhover/20 opacity-50" : "border-border/60 bg-cardhover/40"
+                    state === "pending"
+                      ? "border-border/40 bg-cardhover/20 opacity-50"
+                      : "border-border/60 bg-cardhover/40"
                   }`}
                 >
-                  {state === "pass" && <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />}
-                  {state === "fail" && <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />}
-                  {state === "checking" && <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />}
-                  {state === "pending" && <span className="mt-1 size-2 shrink-0 rounded-full bg-muted-foreground/30" />}
+                  {state === "pass" && (
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                  )}
+                  {state === "fail" && (
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                  )}
+                  {state === "checking" && (
+                    <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+                  )}
+                  {state === "pending" && (
+                    <span className="mt-1 size-2 shrink-0 rounded-full bg-muted-foreground/30" />
+                  )}
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-foreground">{label}</div>
-                    <div className="truncate font-mono text-[11px] text-muted-foreground">{note}</div>
+                    <div className="truncate font-mono text-[11px] text-muted-foreground">
+                      {note}
+                    </div>
                   </div>
                 </li>
               );
@@ -473,7 +548,8 @@ function AgentCompatibility({
 
           {resolvedCount >= CHECK_LABELS.length && !ready && (
             <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-              This PC does not meet agent requirements. The FileLink agent supports Windows 10/11 with PowerShell.
+              This PC does not meet agent requirements. The FileLink agent supports Windows 10/11
+              with PowerShell.
             </div>
           )}
         </>
@@ -496,8 +572,9 @@ function AgentCompatibility({
         </button>
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">
-        "Add Agent" installs the background agent on <span className="font-semibold">{target}</span> — it requires
-        administrator permission on that PC. "Download Agent" saves the same installer as a .cmd file.
+        "Add Agent" installs the background agent on <span className="font-semibold">{target}</span>{" "}
+        — it requires administrator permission on that PC. "Download Agent" saves the same installer
+        as a .cmd file.
       </p>
 
       {stage && (
@@ -508,7 +585,8 @@ function AgentCompatibility({
                 <AlertTriangle className="mx-auto size-9 text-warning" />
                 <h4 className="mt-3 text-base font-bold text-foreground">Add {target}</h4>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Choose how <span className="font-semibold text-foreground">{target}</span> connects.
+                  Choose how <span className="font-semibold text-foreground">{target}</span>{" "}
+                  connects.
                 </p>
 
                 <div className="mt-4 flex rounded-xl border border-border bg-cardhover/60 p-1">
@@ -533,8 +611,12 @@ function AgentCompatibility({
                 <ul className="mt-3 space-y-1.5 rounded-xl border border-border/60 bg-cardhover/40 p-3 text-left text-[11px] leading-relaxed text-muted-foreground">
                   {elevate ? (
                     <>
-                      <li>• Shows a real Windows administrator approval prompt before installing</li>
-                      <li>• Once approved: installs quietly and starts automatically with Windows</li>
+                      <li>
+                        • Shows a real Windows administrator approval prompt before installing
+                      </li>
+                      <li>
+                        • Once approved: installs quietly and starts automatically with Windows
+                      </li>
                       <li>• Full remote control: files, power actions, screen, everything</li>
                     </>
                   ) : (
@@ -567,7 +649,10 @@ function AgentCompatibility({
               </>
             )}
 
-            {(stage === "requesting" || stage === "accepted" || stage === "adding" || stage === "verifying") && (
+            {(stage === "requesting" ||
+              stage === "accepted" ||
+              stage === "adding" ||
+              stage === "verifying") && (
               <>
                 <RefreshCw className="mx-auto size-9 animate-spin text-primary" />
                 <h4 className="mt-3 text-base font-bold text-foreground">
@@ -590,20 +675,19 @@ function AgentCompatibility({
                 </p>
 
                 <div className="mt-4 flex flex-col gap-2 text-left">
-                  {(
-                    elevate
-                      ? [
-                          { key: "requesting", label: "Administrator approved" },
-                          { key: "accepted", label: "Accepted" },
-                          { key: "adding", label: "Adding agent" },
-                          { key: "verifying", label: "Verifying connection" },
-                        ]
-                      : [
-                          { key: "requesting", label: "Requested" },
-                          { key: "accepted", label: "Accepted" },
-                          { key: "adding", label: "Adding agent" },
-                          { key: "verifying", label: "Verifying connection" },
-                        ]
+                  {(elevate
+                    ? [
+                        { key: "requesting", label: "Administrator approved" },
+                        { key: "accepted", label: "Accepted" },
+                        { key: "adding", label: "Adding agent" },
+                        { key: "verifying", label: "Verifying connection" },
+                      ]
+                    : [
+                        { key: "requesting", label: "Requested" },
+                        { key: "accepted", label: "Accepted" },
+                        { key: "adding", label: "Adding agent" },
+                        { key: "verifying", label: "Verifying connection" },
+                      ]
                   ).map((s, i) => {
                     const order = ["requesting", "accepted", "adding", "verifying"] as const;
                     const currentIndex = order.indexOf(stage as (typeof order)[number]);
@@ -613,7 +697,9 @@ function AgentCompatibility({
                       <div key={s.key} className="flex items-center gap-2.5">
                         <span
                           className={`grid size-5 shrink-0 place-items-center rounded-full ${
-                            reached ? "bg-primary text-primary-foreground" : "bg-cardhover text-muted-foreground"
+                            reached
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-cardhover text-muted-foreground"
                           }`}
                         >
                           {reached && !isCurrent ? (
@@ -624,7 +710,9 @@ function AgentCompatibility({
                             <span className="size-1.5 rounded-full bg-current" />
                           )}
                         </span>
-                        <span className={`text-xs ${reached ? "text-foreground" : "text-muted-foreground"}`}>
+                        <span
+                          className={`text-xs ${reached ? "text-foreground" : "text-muted-foreground"}`}
+                        >
                           {s.label}
                         </span>
                       </div>
@@ -664,9 +752,12 @@ function AgentCompatibility({
             {stage === "added" && (
               <>
                 <CheckCircle2 className="mx-auto size-9 text-accent" />
-                <h4 className="mt-3 text-base font-bold text-foreground">Agent successfully connected</h4>
+                <h4 className="mt-3 text-base font-bold text-foreground">
+                  Agent successfully connected
+                </h4>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  {target} now runs the FileLink background agent and reconnects automatically with Windows.
+                  {target} now runs the FileLink background agent and reconnects automatically with
+                  Windows.
                 </p>
                 <button
                   onClick={() => {

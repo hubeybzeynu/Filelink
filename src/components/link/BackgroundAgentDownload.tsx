@@ -22,12 +22,24 @@ export function BackgroundAgentDownload({
 
   function run(action: "download" | "copy") {
     if (action === "download") {
-      downloadAgentInstaller({ origin: resolvedOrigin, roomCode: session.roomCode, deviceName, elevate });
+      downloadAgentInstaller({
+        origin: resolvedOrigin,
+        roomCode: session.roomCode,
+        deviceName,
+        elevate,
+      });
       setOpen(false);
       return;
     }
     void navigator.clipboard
-      ?.writeText(buildAgentInstaller({ origin: resolvedOrigin, roomCode: session.roomCode, deviceName, elevate }))
+      ?.writeText(
+        buildAgentInstaller({
+          origin: resolvedOrigin,
+          roomCode: session.roomCode,
+          deviceName,
+          elevate,
+        }),
+      )
       .then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
@@ -52,7 +64,8 @@ export function BackgroundAgentDownload({
               <span className="text-sm font-bold">Name this PC</span>
             </div>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              The installer registers the agent under this name so you can tell your devices apart in the room.
+              The installer registers the agent under this name so you can tell your devices apart
+              in the room.
             </p>
             <input
               value={name}

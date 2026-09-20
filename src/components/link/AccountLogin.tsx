@@ -14,7 +14,10 @@ export function AccountLogin({ onLoggedIn }: { onLoggedIn: (user: UserSession) =
     setBusy(true);
     setError(null);
     try {
-      const user = mode === "login" ? await userLogin(username.trim(), password) : await signup(username.trim(), password);
+      const user =
+        mode === "login"
+          ? await userLogin(username.trim(), password)
+          : await signup(username.trim(), password);
       saveUserSession(user);
       onLoggedIn(user);
     } catch (e) {
@@ -35,7 +38,9 @@ export function AccountLogin({ onLoggedIn }: { onLoggedIn: (user: UserSession) =
 
         <div className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">Username</span>
+            <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
+              Username
+            </span>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -48,7 +53,9 @@ export function AccountLogin({ onLoggedIn }: { onLoggedIn: (user: UserSession) =
             </div>
           </label>
           <label className="block">
-            <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">Password</span>
+            <span className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
+              Password
+            </span>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input

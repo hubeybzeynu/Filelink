@@ -23,7 +23,12 @@ export function OpenFileLinkTab({ session, target }: { session: Session; target:
       addAudit("File/Link", `${label} on ${target}`, "SUCCESS", target);
     } catch (e) {
       setNote(`Failed: ${(e as Error).message}`);
-      addAudit("File/Link", `${label} failed on ${target}: ${(e as Error).message}`, "ERROR", target);
+      addAudit(
+        "File/Link",
+        `${label} failed on ${target}: ${(e as Error).message}`,
+        "ERROR",
+        target,
+      );
     }
     setBusy(false);
   }
@@ -47,7 +52,12 @@ export function OpenFileLinkTab({ session, target }: { session: Session; target:
       // no default app for the type — that's an OS-level prompt on that PC,
       // not something a remote script can preview or override.
       setNote(`Failed: ${(e as Error).message}`);
-      addAudit("File/Link", `Upload & open failed on ${target}: ${(e as Error).message}`, "ERROR", target);
+      addAudit(
+        "File/Link",
+        `Upload & open failed on ${target}: ${(e as Error).message}`,
+        "ERROR",
+        target,
+      );
     }
     setBusy(false);
   }
@@ -84,7 +94,9 @@ export function OpenFileLinkTab({ session, target }: { session: Session; target:
           />
           <button
             disabled={busy || !path.trim() || !target}
-            onClick={() => void dispatch(`start "" "${path.trim()}"`, `Executed path ${path.trim()}`)}
+            onClick={() =>
+              void dispatch(`start "" "${path.trim()}"`, `Executed path ${path.trim()}`)
+            }
             className="ios-btn flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-cardhover px-3 text-xs font-semibold text-foreground hover:text-primary disabled:opacity-40"
           >
             <Play className="size-4" /> Run
@@ -95,8 +107,8 @@ export function OpenFileLinkTab({ session, target }: { session: Session; target:
       <div className="mt-6 rounded-2xl border border-border bg-cardhover/40 p-5">
         <h4 className="mb-1 text-sm font-bold text-foreground">Send a file and open it</h4>
         <p className="mb-4 text-[11px] text-muted-foreground">
-          Uploads a file straight to {target || "the target PC"} and opens it with whatever app that PC has
-          for that file type.
+          Uploads a file straight to {target || "the target PC"} and opens it with whatever app that
+          PC has for that file type.
         </p>
         <input
           ref={fileRef}

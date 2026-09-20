@@ -6,7 +6,14 @@ type PlanKey = "free" | "pro" | "extended";
 
 const PLANS: Record<
   PlanKey,
-  { name: string; icon: typeof Zap; price: number; tagline: string; features: string[]; badge?: string }
+  {
+    name: string;
+    icon: typeof Zap;
+    price: number;
+    tagline: string;
+    features: string[];
+    badge?: string;
+  }
 > = {
   free: {
     name: "Free",
@@ -187,7 +194,9 @@ export function PricingDialog({
                     key={d.months}
                     onClick={() => setMonths(d.months)}
                     className={`rounded-xl border px-3 py-2 text-left text-xs ${
-                      months === d.months ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      months === d.months
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground"
                     }`}
                   >
                     <div className="font-semibold">{d.label}</div>
@@ -199,14 +208,16 @@ export function PricingDialog({
 
             <div className="rounded-xl border border-border bg-cardhover/60 p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{chosen.name} · {months} mo</span>
+                <span className="text-muted-foreground">
+                  {chosen.name} · {months} mo
+                </span>
                 <span className="font-bold text-foreground">${total}</span>
               </div>
             </div>
 
             <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-              No payment processor is connected yet — this updates your plan directly without charging
-              anything. Real billing needs a Stripe (or similar) account wired in first.
+              No payment processor is connected yet — this updates your plan directly without
+              charging anything. Real billing needs a Stripe (or similar) account wired in first.
             </p>
 
             <button
